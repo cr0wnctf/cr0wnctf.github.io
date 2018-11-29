@@ -12,7 +12,7 @@ This is a writeup of the Ghostkingdom web challenge from SECCON 2018 Online CTF.
 
 Upon visiting the website we can see a webpage saying 'FLAG is somewhere in this folder'. Well if we can get read access/Code execution of some sort on the web server we'll know where to look, how kind.
 
-Visiting the link directs us to what appears to be the real challenge site. We can register and login. Trying to register with the same username and password throws an error: 'Do not use Joe-password'. This seemed suspicious at first, who is Joe? What does he want? Are his passwords a particularly poor choice? Either way it doesn't really make sense, any swiftly moved on slightly more confused at the world.
+Visiting the link directs us to what appears to be the real challenge site. We can register and login. Trying to register with the same username and password throws an error: 'Do not use Joe-password'. This seemed suspicious at first, who is Joe? What does he want? Are his passwords a particularly poor choice? Either way it doesn't really make sense, anyway we swiftly moved on slightly more confused at the world.
 
 After registering and logging in we are presented with three options:
 
@@ -22,9 +22,9 @@ After registering and logging in we are presented with three options:
 
 ![options]({{site.url}}/images/seccon18/greyed.png)
 
-However, the upload image link is greyed out, saying that we can only access it from the local network. This is clearly some juicy (presumably exploitable) functionality we want to access. Question is how. This immediately begat three ideas:
+However, the upload image link is greyed out, saying that we can only access it from the local network. This is clearly some juicy (presumably exploitable) functionality we want to access. Question is how? This immediately begat three ideas:
 
-1. XSS (send a XSS'd message to admin make it do some local stuff)
+1. XSS (send an XSS'd message to admin make it do some local stuff)
 2. SSRF (somehow manipulate the screenshot functionality and also make it do local stuff for us)
 3. Spoof being from the local network by [abusing HTTP forwarding headers](https://blog.ircmaxell.com/2012/11/anatomy-of-attack-how-i-hacked.html).
 
@@ -32,7 +32,7 @@ So we tested all the endpoints available to us.
 
 ### Message Admin
 
-During the exploration of the "message admin" page we can preview the message. This lets us test our exact payload and receive feedback, very helpful for prototyping an XSS exploit. Unfortunately, it would appear that filtering is being applied and any useable characters tried were being escaped.
+During the exploration of the "message admin" page we can preview the message. This lets us test our exact payload and receive feedback, very helpful for prototyping an XSS exploit. Unfortunately, it would appear that filtering is being applied and any useable characters being tried were escaped.
 
 ### Screenshot a page
 The screenshot page allows us to screenshot any site. We logged the screenshot bot connecting to our server and observed that it simply makes a single GET request to the supplied URL. Due to the Same-Origin Policy(SOP) it's not possible to force the bot to request the locked "upload image" link we would like.
@@ -41,8 +41,8 @@ The screenshot page allows us to screenshot any site. We logged the screenshot b
 ## Exploits
 ### SSRF
 
-Trying to get the screenshot bot to GET [http://localhost/](http://localhost/) or [http://127.0.0.1/](http://127.0.0.1/) failed as any url with 'local' or '127.0.0.1' was being filtered. Luckily there are numerous bypasses for this  we can use decimal IP representation for localhost ([http://2130706433/](http://2130706433/)) or [http://lvh.me/](http://lvh.me/) (resolves to localhost). Or use your own dns and set it to '127.0.0.1', I mean it's bad
-practice but who's gonna stop you? The internet police? Screenshotting [http://2130706433/](http://2130706433/) shows us that the screenshotting bot is not logged in, how annoying. It also shows us that the bot is on the local network (makes sense), and that there is a different login.
+Trying to get the screenshot bot to GET [http://localhost/](http://localhost/) or [http://127.0.0.1/](http://127.0.0.1/) failed as any url with 'local' or '127.0.0.1' was being filtered. Luckily there are numerous bypasses for this. We can use decimal IP representation for localhost ([http://2130706433/](http://2130706433/)) or [http://lvh.me/](http://lvh.me/) (resolves to localhost). Or use your own DNS and set it to resolve to '127.0.0.1', I mean it's bad
+practice but who's gonna stop you? The internet police? Screenshotting [http://2130706433/](http://2130706433/) shows us that the bot is not logged in, how annoying. It also shows us that the bot is on the local network (makes sense), and that there are different login types (local/internet).
 
 ![Screenshot]({{site.url}}/images/seccon18/screenshot.png)
 
@@ -50,9 +50,9 @@ The login request is a GET request, and so we can get the bot to login by gettin
 
 [http://ghostkingdom.pwn.seccon.jp/?url=http%3A%2F%2F2130706433%2F%3Fuser%3Dp4wnp4wn%26pass%3Dpassword123%26action%3Dlogin&action=sshot2](http://ghostkingdom.pwn.seccon.jp/?url=http%3A%2F%2F2130706433%2F%3Fuser%3Dp4wnp4wn%26pass%3Dpassword123%26action%3Dlogin&action=sshot2)
 
-We can then get the screenshot bot to visit the menu. From the returned screenshot we can see that upload is allowed (The link has turned blue), HUZZAH! A lead! We assumed that this was the most likely way to progress. However we're definitely missing a few pieces, a screenshot of a working link does not an exploit make. 
+This makes the bot visit the main menu. From the returned screenshot we can see that upload is allowed (The link has turned blue), HUZZAH! A lead! We assumed that this was the most likely way to progress. However we're definitely missing a few pieces, a screenshot of a working link does not an exploit make.
 
-### XSS but not as you know it
+### XSS, But Not as You Know it
 
 During our initial survey, we found it's possible to send the admin an emergency message. Using this feature we can include some CSS as a parameter that gets injected into the page as a style tag. What an odd design choice.
 
@@ -104,16 +104,16 @@ while "wait" in r.text:
     r = req.get(message)
 ```
 
-Server side we used netcat in a while loop with a tiny webpage to speed up the above script since the bot won't hang waiting for a non-existent background image.
+Server side we used netcat in a while loop with a tiny webpage to speed up the above script so the bot won't hang waiting for a non-existent background image.
 
 ```bash
 while true; do { echo -e 'HTTP/1.1 200 OK\r\n'; echo -e "THINGS\n\r\n"; } | nc -lv 8001 -q 1; done
 ```
 
-If you felt like it this serves nicely as a very quick and dirty static HTML webserver for future reference.
+If you felt like it, netcat in a loop nicely serves as a very quick and dirty static HTML webserver.
 
 
-One catch being that we can only exfiltrate data present in the DOM of the page; there isn't a way to arbitrarily get pages or do anything _really_ interesting. There was only one thing we could exfiltrate, and that was the CSRF token which is _dull and boring and not fun_. At this point we started to get frustrated. It felt like we had a lot of the pieces! Things had been fitting nicely,
+One catch being that we can only exfiltrate data present in the DOM of the page; there isn't a way to arbitrarily get pages or do anything _really_ interesting. There was only one thing we can exfiltrate, and that was the CSRF token which is _dull and boring and not fun_. At this point we started to get frustrated. It felt like we had a lot of the pieces! Things had been fitting nicely,
 but we just need one more. To recap what we know:
 
 1. We can force the local screenshot bot to login as a local user
@@ -121,7 +121,7 @@ but we just need one more. To recap what we know:
 3. We can craft a payload that runs on the same domain to steal DOM data from the messaging page
 4. The only thing we can steal is a CSRF token
 
-The missing piece it turned out was discovered by chance! Observing requests and responses in our lovely Burp Repeater revealed something astounding, you won't believe it, _another clickbait clause_. Your CSRF token on the page, IS THE SAME AS YOUR SESSION TOKEN LOLWUT. Well lemme tell you this was a rewarding 1hr slog of staring at HTTP requests.
+The missing piece it turned out was discovered by chance! Observing requests and responses in our lovely Burp Repeater revealed something astounding, you won't believe it, _another clickbait clause_. Your CSRF token on the page IS THE SAME AS YOUR SESSION TOKEN LOLWUT. Well lemme tell you this was a rewarding 1hr slog of staring at HTTP requests.
 
 
 Combining all of the above, by stealing the bot's CSRF token we'll have it's session token as well! But we still won't be a local user, _*OR WILL WE*_? It turns out, however, that the page only checks if you are logged in to the local network at login time, and by stealing the screenshotter's CSRF token and by extension session token we're treated as a local user, even though we most definitely are not.
@@ -134,7 +134,7 @@ Combining all of the above, by stealing the bot's CSRF token we'll have it's ses
 
 Well now we have a logged in "local" session, let's see what fun we can get up to with it. Turns out not much, it's just a picture conversion service. Which gives us some ideas:
 
-1. ImageTragick
+1. [ImageTragick](https://imagetragick.com/)
 2. Some sort of arbitrary file inclusion
 3. Some other XSS using image polyglot
 
@@ -143,9 +143,9 @@ The upload looks like this after you've selected a photo:
 ![upload]({{site.url}}/images/seccon18/convert.png)
 
 
-This is just a random JPG I had in my downloads folder form another CTF we competed in, bonus points if you know which CTF it was ;)
+This is just a random JPG I had in my downloads folder form another CTF we competed in. Bonus points if you know which CTF it was ;).
 
-Now the really interesting thing here is the "convert" link, I mean it will be, it's the only other thing on the page apart from "back" so that's a bit of a pointless statement. But what I really mean is that "converting" an image is a _very_ strong indicator that we're dealing with an ImageTragick style exploit. Since that's triggered by user controlled input into an ImageMagick command, which `convert` is one of.
+Now the really interesting thing here is the "convert" link. I mean it will be, it's the only other thing on the page apart from "back" so that's a bit of a pointless statement. But what I really mean is that "converting" an image is a _very_ strong indicator that we're dealing with an ImageTragick style exploit. Since that's triggered by user controlled input into an ImageMagick command, which `convert` is one of.
 
 Fooling around with the request (below), gives us more useful information.
 
@@ -158,7 +158,6 @@ Fooling around with the request (below), gives us more useful information.
 The above request uploads the image, and the next one actually performs the conversion.
 
 ![Request2]({{site.url}}/images/seccon18/request2.png)
-
 
 So we're feeling pretty good about our plans, grab an ImageTragick payload and lets get that nutty flag!
 
@@ -182,9 +181,9 @@ A quick google search leads us to:
 
 Darn, this is a locked down version of ImageMagick that blocks the conversion _because it's evil_. NEVERTHELESS WHO DO THEY THINK WE ARE!?
 
-The final hurdle is bypassed by looking at the name of the cgi file, and the challenge name; `ghostMagick.cgi`, and `GhostKingdom`. This _very subtly_ hints at another Linux utility `ghostscript`. This is used to convert EPS files and PDF's and such. But more importantly than formalised document formats, it also suffers from being exploitable based on user input.
+The final hurdle is bypassed by looking at the name of the cgi file, and the challenge name; `ghostMagick.cgi`, and `GhostKingdom`. This _very subtly_ hints at another Linux utility `ghostscript`. This is used to convert EPS and PDF files and such. But more importantly than formalised document formats, it also suffers from being exploitable based on user input very similarly to ImageTragick.
 
-Now you might be thinking, "If Ghostscript only handles PDF's and EPS files, and we can only upload files ending in '.jpg'. Wot U Gonna Do??". Well, turns out ImageMagick is a very helpful lass. For ImageMagick, _extensions are just suggestions_, it will attempt to work out what filetype to convert from by inspecting the first N bytes of an image! So using another, Ghostscript specific, payload:
+Now you might be thinking, "If Ghostscript only handles PDFs and EPS files, and we can only upload files ending in '.jpg'. Wot U Gonna Do??". Well, turns out ImageMagick is a very helpful lass. For in ImageMagick's eyes, _extensions are just suggestions_, it will attempt to work out what filetype to convert from by inspecting the first N bytes of an image! So using another, Ghostscript specific, payload:
 
 ```
 %!PS
