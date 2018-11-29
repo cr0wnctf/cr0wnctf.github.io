@@ -1,6 +1,6 @@
 # Site settings
 title: TQ2 CTF
-description: "Homepage of The UK's Top Competitive Cyber Security Team"
+description: "The UK's Top Competitive Cyber Security Team"
 url: 'http://tq2c.tf'
 baseurl: ''
 # google_analytics: 'UA-XXXXXX-X'
