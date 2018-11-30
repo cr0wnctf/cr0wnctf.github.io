@@ -1,7 +1,7 @@
 # Site settings
 title: TQ2 CTF
 description: "The UK's Top Competitive Cyber Security Team"
-url: 'http://tq2c.tf'
+url: 'https://tq2c.tf'
 baseurl: ''
 # google_analytics: 'UA-XXXXXX-X'
 # disqus_shortname: 'your-disqus-name'
