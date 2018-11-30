@@ -143,7 +143,7 @@ The upload looks like this after you've selected a photo:
 ![upload]({{site.url}}/images/seccon18/convert.png)
 
 
-This is just a random JPG I had in my downloads folder form another CTF we competed in. Bonus points if you know which CTF it was ;).
+This is just a random JPG I had in my downloads folder from another CTF we competed in. Bonus points if you know which CTF it was ;).
 
 Now the really interesting thing here is the "convert" link. I mean it will be, it's the only other thing on the page apart from "back" so that's a bit of a pointless statement. But what I really mean is that "converting" an image is a _very_ strong indicator that we're dealing with an ImageTragick style exploit. Since that's triggered by user controlled input into an ImageMagick command, which `convert` is one of.
 
