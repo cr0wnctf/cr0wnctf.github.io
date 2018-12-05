@@ -2,7 +2,7 @@
 title:  "SECCON Ghostkingdom Writeup"
 date:   2018-11-29
 categories: [writeup]
-tags: [writeups]
+tags: [writeups, web]
 ---
 **Solved by: 0x6e6576657220676f6e6e61, p4wn, $ud0**
 
