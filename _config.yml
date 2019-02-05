@@ -1,5 +1,5 @@
 # Site settings
-title: TQ2 CTF
+title: The Cr0wn CTF
 description: "The UK's Top Competitive Cyber Security Team"
 url: 'https://tq2c.tf'
 baseurl: ''
@@ -7,9 +7,9 @@ baseurl: ''
 # disqus_shortname: 'your-disqus-name'
 
 author:
-  name: 'TQ2'
+  name: 'The Cr0wn'
   email: contact@tq2c.tf
-  github_username:  tq2ctf
+  github_username: cr0wnctf
 
 defaults:
   -
