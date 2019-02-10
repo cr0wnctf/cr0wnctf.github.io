@@ -1,0 +1,553 @@
+---
+title:  "VincCTF Writeup"
+date:   2019-02-01
+categories: [writeup]
+tags: [writeups, crypto]
+---
+
+This was a very enjoyable cryptography-only CTF. It explored common implementation errors in modern cryptosystems, with a focus on elliptic curve signatures, broken combination ciphers, and cryptocurrencies.
+
+We discovered this event on Reddit and it does not exist on ctftime, which is a shame because we took first place 😛.
+
+![](/images/vincctf/scoreboard.png)
+
+The original challenges are hosted [here](https://gitlab.newtownia.net/VincBreaker/vincctf-final).
+
+## Quest: TokenVault
+
+### TokenVault v1
+
+### TokenVault v2
+
+### TokenVault v3
+
+## Santa's Bug Bounty Program
+
+### Ha Ha Ha 
+
+This challenge is quite straightforward. Encryption is AES in ECB mode, and rather than the password being encrypted, instead an id is encrypted and XOR'd with the password:
+
+```python
+def storage_password(password, id, encryption_key):
+    global secure_storage
+
+    password = pad(password)
+    ciphertext = ""
+    cipher = AES.new(encryption_key, mode=AES.MODE_ECB)
+    for i in xrange(len(password) / 16):
+        ciphertext += xor_strings(password[i * 16: i * 16 + 16], cipher.encrypt(int_to_byte_string(id + i)))
+    secure_storage[id] = b64encode(ciphertext)
+```
+
+The id is the index of the password in a list. Since the second block of the AES-ECB encryption is performed on the id incremented by one, this means that this encrypted block is identical to the first encrypted block output for the next password.
+
+There is another fact that we can take advantage of; the password is a 16-byte value that gets padded to 32 bytes by appending 0x80 then 15 null-bytes. This means that we can just XOR the two blocks together to recover the password:
+
+$$
+c4_1 = Enc(key, 5) \oplus [0x80, 0x00...]
+\\c5_0 = Enc(key, 5) \oplus password
+\\c4_1 \oplus c5_0 = Enc(key, 5) \oplus Enc(key, 5) \oplus [0x80, 0x00...] \oplus password 
+\\= [0x80, 0x00...] \oplus password
+$$
+
+```python
+xor_strings(b64decode(secure_storage[4])[16:], b64decode(secure_storage[5])[:16])
+```
+
+### Ho Ho Ho 
+
+This challenge is about a "Human Computable Maschine Unbreakable", a mock [master password algorithm](https://en.wikipedia.org/wiki/Master_Password). After proof-of-work, the server sends a "challenge" string of random characters, and allows us either to 'HCMU hash' a string of our choice &mdash; which can be anything besides the challenge string &mdash; or to guess what the challenge string hashes to. If we guess correctly, the flag is given. We are allowed 49 chances to hash our chosen inputs before we have to guess.
+
+In the HCMU function, data is the string to hash, and *f* and *g* make up the "master key": *f* is 26 random single-digit numbers, and *g* is the numbers 0-9 in a random order.
+
+```python
+def hcmu(data, f, g):
+    a = [ f[ord(x) - 65] for x in data ]
+    prev = a[-1]
+    result = []
+    for x in a:
+        prev = g[(prev + x) % 10]
+        result.append(prev)
+    return result
+```
+
+There is a quite a lot going on here for such a simple function. In short:
+ * An array of numbers *a* is selected out of *f* according to an A1Z26 cipher applied to data 
+ * The last number of this array is added to a number from *a*, this is taken mod 10 and used to index into *g*
+ * The number from *g* becomes the new 'last number' and is added to the result
+
+The hashes that we get computed for us can reveal the intermediate states of the cipher, but it's tedious to undo so we opted for a shortcut. By taking the challenge string and changing just the penultimate character, the resulting hash is identical up to the last number. In fact, with 1/10 probability, the last number will be the right one. After a few iterations we are given the flag.
+
+```python
+from pwn import *
+import itertools
+import re
+import string
+
+def recvline():
+    line = r.recvline().decode('ascii')
+    print(line)
+    return line
+
+def extract_proof(s):
+    matched = re.search('.*\(XXXX\+(.*)\) = (.*)', s, re.IGNORECASE)
+    if not matched:
+        exit('regex fail')
+
+    return matched.group(1), matched.group(2)
+
+def proof_of_work(length, x_suffix, hash_prefix):
+    for x in itertools.product(string.ascii_letters + string.digits, repeat=length):
+        c = "".join(list(x))
+        h = hashlib.sha256((c + x_suffix).encode('ascii')).hexdigest()
+        if h.startswith(hash_prefix):
+            return c
+
+def extract_challenge(s):
+    matched = re.search('Challenge: (.*)', s, re.IGNORECASE)
+    if not matched:
+        exit('regex fail')
+
+    return matched.group(1)
+
+flag = ""
+
+while "VINCCTF" not in flag:
+    r = remote('challenge1.ctf.vincbreaker.me', 45871)
+
+    sfx, hsh = extract_proof(recvline())
+    proof = proof_of_work(4, sfx, hsh)
+    r.sendline(proof)
+
+    challenge = extract_challenge(recvline())
+    new_challenge = challenge[:14] + chr(ord(challenge[14]) - 1) + challenge[-1]
+    print(new_challenge)
+    r.sendline("hash " + new_challenge)
+    attempt = recvline()
+
+    line = "solve " + attempt.replace(" ", "")
+    print(line)
+    r.sendline(line)
+    flag = r.recvall()
+    print(flag)
+```
+
+## Quest: The Agency(TM)
+
+### Agency 1
+### Agency 2
+### Agency 3
+
+## Common
+
+### DeAnonymiser
+
+We are given code for a linkable [ring signature scheme](https://en.wikipedia.org/wiki/Ring_signature) very similar to that used in Monero and presented in the [CryptoNote whitepaper](https://cryptonote.org/whitepaper.pdf). We are also given a short message and a ring signature including 1000 public keys, 1000 signatures, and a key image.
+
+The fascinating property of ring signatures is that we can verify that a private key associated with one of the public keys in the ring was used to sign the message, but we can't distinguish which. However, in this challenge there is a flaw allowing us to distinguish which key was involved in closing the ring.
+
+We spent many hours analysing the algorithm here and comparing it to the one in the Monero papers and source code. Despite being a complex function with numerous fine details, we couldn't find any meaningful weaknesses.
+
+Finally, after a nudge from the admin to look for *subtle* implementation differences, we found something suspicious in the one-line functions below the main algorithm:
+
+```python
+def key_image(private_key):
+   return scalarmultKeyInt(hash_point((public_key(private_key))), private_key)
+
+def hash_point(point):
+   return public_key(int(sha256(point).hexdigest(), base=16))
+```
+
+The key image provides the 'linkable' part of the scheme, without implying a loss of anonymity. It is a deterministic value calculated from the private key, essential in cryptocurrency because it [prevents double-spends](https://monero.stackexchange.com/a/2890) &mdash; miners will not accept signatures containing a key image that has been emitted before on the blockchain.
+
+But due to a fatal flaw in the hash point function, here there is total loss of anonymity. With *G* as the curve base point, *x* as private key, *P* as the public key (*xG*), *Hp* as the hash point function, and *I* as the key image: 
+
+$$
+Hp(P) = G \cdot SHA(P)
+\\I = x \cdot Hp(P)
+\\I = x \cdot G \cdot SHA(P)
+\\I = P \cdot SHA(P)
+$$
+
+By expressing the key image purely in terms of the public key, we can compute what it would be for all 1000 of the public keys in the ring, and find the one which actually matches the key image in the signature.
+
+Vitalik Buterin describes this attack and [writes](https://reddit.com/r/ethereum/comments/75rzdn/linkable_ring_signatures_on_ropsten/doabclr/) it is essential to "use a hash function that outputs points with no known private keys".
+
+### Distinguish me
+### DRNG
+### EcRSA
+### Enigma
+### Fast hashes
+
+The source code is for a keyed [sponge function](https://en.wikipedia.org/wiki/Sponge_function). We provide input to the challenge server, and it uses the flag as the key and returns us the hash.
+
+```python
+def hash(input, key):
+    v = [key[0], key[1], key[2], key[3]]
+    print v
+
+    # Absorb input
+    for m in input:
+        v[2] ^= m
+        round(v)
+        round(v)
+        round(v)
+        round(v)
+        v[0] ^= m
+
+    # Switch to squeezing phase
+    v[1] ^= 0xFF
+    for i in range(8):
+        round(v)
+
+    # Squeeze
+    o0 = v[2]
+    o1 = v[3]
+    round(v)
+    o2 = v[2]
+    o3 = v[3]
+
+    return [o0, o1, o2, o3]
+```
+
+Our first observation is that if we provide empty input, then we skip the absorb step and only have to compute nine rounds over the key.
+
+Each round does a bunch of ARX operations (addition, rotation and XOR), like a simplified version of SHA256:
+
+```python
+rol = lambda val, r_bits, max_bits: \
+    (val << r_bits % max_bits) & (2 ** max_bits - 1) | \
+    ((val & (2 ** max_bits - 1)) >> (max_bits - (r_bits % max_bits)))
+
+
+def mix(v, a, b, shift):
+    v[a] += v[b]
+    v[a] &= 0xffffffffffffffff
+    v[b] = v[a] ^ rol(v[b], shift, 64)
+
+
+def round(v):
+    mix(v, 0, 1, 13)
+    mix(v, 2, 3, 16)
+    v[0] = rol(v[0], 32, 64)
+    mix(v, 0, 3, 21)
+    mix(v, 2, 1, 17)
+    v[2] = rol(v[2], 32, 64)
+```
+
+To recap a moment, what makes cryptographic hash functions [hard to reverse](https://crypto.stackexchange.com/a/45390)? Partly it is destructive operations like addition, where if we only know the output, the inputs could be many different possibilities. For instance there are many different combinations of two integers that sum to 1000.
+
+Doing hundreds of these operations repeatedly over many rounds produces a system of equations so complicated it is computationally infeasible to solve them.
+
+However, in this case, there are not enough of these operations happening for a solution to be out of reach for a SAT solver like z3. Each round is invertible individually, so by using a separate z3 model each time and carrying the state backwards, we can just run the hash function in reverse to obtain the original value of the key:
+
+```python
+from z3 import *
+import struct
+import signal; signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+# hash of empty string, with flag as key
+h = [1811384997998791088,
+10357316028094967616,
+9465977251731344051,
+1235654785443449254] # from the challenge server
+
+def mix(v, a, b, shift):
+    v[a] += v[b]
+    v[b] = v[a] ^ RotateLeft(v[b], shift)
+
+def round(v):
+    mix(v, 0, 1, 13)
+    mix(v, 2, 3, 16)
+    v[0] = RotateLeft(v[0], 32)
+    mix(v, 0, 3, 21)
+    mix(v, 2, 1, 17)
+    v[2] = RotateLeft(v[2], 32)
+
+def invert_round(v_out):
+    s = Solver()
+    k = [BitVec("k{}".format(i), 64) for i in range(4)]
+    v = k[::]
+    round(v)
+    for i in range(4):
+        s.add(v[i] == v_out[i])
+    print(s.check())
+    m = s.model()
+    print(m)
+    return [m[ki].as_long() for ki in k]
+
+
+s = Solver()
+
+k = [BitVec("k{}".format(i), 64) for i in range(4)]
+v = k[::]
+
+s.add(v[2] == h[0])
+s.add(v[3] == h[1])
+round(v)
+s.add(v[2] == h[2])
+s.add(v[3] == h[3])
+
+print(s.check())
+m = s.model()
+print(m)
+state = [m[ki].as_long() for ki in k]
+print(state)
+
+for i in range(8):
+    state = invert_round(state)
+    print(state)
+
+state[1] ^= 0xFF
+
+print(struct.pack(">QQQQ", *state))
+```
+
+
+### Fixed points
+### hProof
+
+### KMAC
+
+This time, the flag is the key. 16 random messages are generated and encrypted and signed. The encryption is AES-ECB of a nonce, which is then XOR'd with the blocks of the message. We know the ciphertext so we can recover the encrypted nonce.
+
+The signing operation involves a weak [knapsack construction](http://www.dtc.umn.edu/~odlyzko/doc/arch/knapsack.survey.pdf):
+
+```python
+def generate_tag(message, key, nonce):
+    # Mask nonce
+    nonce = AES.new(key, mode=AES.MODE_ECB).encrypt(nonce)[0:16]
+    t = 0
+    for i in xrange(len(message)):
+        t += (ord(message[i]) + ord(nonce[i % len(nonce)])) * ord(key[i % len(key)])
+    return str(t)
+```
+
+This produces a tag number as a signature, by iterating over each byte of the ciphertext, adding its value to that of the corresponding byte of the encrypted nonce, multiplying by the key, then adding all of that to the total so far.
+
+We know the ciphertext, and we know the encrypted nonce, so to find the key we just need to work out the series of multipliers that compute the tags across several ciphertexts. This is an easy job for z3:
+
+```python
+#!/usr/bin/env python2
+# -*- coding:utf-8 -*-
+#
+# VincCTF 2018 - KnapMAC
+
+from base64 import b64encode, b64decode
+from z3 import *
+
+# Outputs:
+messages = ['1Sjqjno6vQPGzRleQ2qLog==', 'ocTw+cAOSP20RJgCMCLrJw==', 'WWSlqNPLT78TW4WX2Akbng==', 'ZpdxKHsSHDhn/ShYdzyiDw==', 'uSrEb5weSwnMLjSq3WQsoA==', 'Wy8ppzjKiF40aJHcgj6uLg==', '8geQtv/wKVyahG4DDdATGQ==', 'vz/QYAHWDwdceZp2CdS6yw==', 'pQ5XLQWZNmCUZmmvrjmH2g==', 'QCtIdi0x7bFeCtnEHdhI0A==', '7GPeBFrmFlLsB3H32uWvuw==', 'Iwbx0qwUZJWXF4Jy/pJT6Q==', 'C3aqdEVvdl4UoUuVMiBnBg==', 'klIIsVnpjNkeH4RMkwK7LA==', 'gOOJ+I6SegY3A9jV8rv+HA==', 'bwrJRVPCxcgRlE0434M6TQ==']
+ciphertexts = ['xxp3OIWjgCaHQO6KNOJrCQ==|Pymme0MfW28UwQ/1ZW28lesBTPU5JeZs0gwWqyYHNzc=|486920', 'kIaaSrIXGeTUrgyQXA5SaA==|xMRRwc8VjeRHfBciWsdTqWQAoTgPG8UZ8ziPIGrluI4=|565960', 'W6Oh+gOSHb9asEBD4QJKJw==|esIwkshv4unE89sFQzIxiyKmlTobpK1W16hekps7KhU=|604400', '4jxgWjp5VSNZPn74xDYjSA==|JtyMe52MiOOJ55ONuGDsDEFL/VPmnpTb7hq71c9cTgM=|776783', '0JJwQa1mGEXf5yHXsNwDWg==|MOVDX/CGk2tU6UIkbRU9v4jPhzBsmNhimMd2jrBxER8=|657762', 'WyhSStJG+shQrVo0zPyikA==|zVMXNT4c8QtHQcp0wwxw3Jd8PpIG1nlVcylbqEEy3vI=|613444', 'zVd1poHzB1Y5XLuGXA4D3g==|Xu6QHuQOq/CBhGRvQivxY63pAKgb/oKsGwAKbE/74no=|639580', '9l3KVD3Xn3ssUHExPLmsJg==|jeEXVzBsBiDEyuu7N75MeDPexzcxugknmLNxzT5q9rM=|637861', 'Cf016fa9qJfdBuzLm69Bww==|Ee8AXoDIO6yPysL9d4HdjbXhV3OFUQ3MG6yrUtm4Wlc=|725888', 'HzmIhUvDP6wYsfnYVpz99w==|3ShLTn8SqmySYB29g04JkpwDAzhSI0fdzGrEeZ6WQUI=|569499', 'Ma8oNqi4N2EV9r0Ib+1noQ==|Mfn9UZ/iJpOY/WwlORERPNyaI1XFBDDBdPod0uP0voc=|733841', '325qlVtaD0E/Rt+vRkDUtw==|3bUMCign8lZe5hPZVZ9TMf+z/diEM5bDyfGRq6sNANg=|786733', '/jPI2hcX2vTwyFUT1FHTxQ==|ZaUdaBZtWWQFdOlF8uf31G/TtxxTAi86EdWi0MDHkNI=|680863', 'BNivS/UMNlVYxfLrTcHOSg==|juhK4jLRXDmAe+Vezj+1BB26QlNrONDgnmRhEl09Dig=|553887', 'n/6eZlA3LBUgWrfcL+rFCQ==|NVjnomCzUUjOQo4Umj+BtbS7blruIStO+UFWwWiEf6k=|687975', 'DHFORzF16NDQJs3CAdBhaQ==|enXar7IDO5UqyESZkfZ62RR/E+rhwf5dO1wJoU51QJQ=|650619']
+
+def xor_strings(xs, ys):
+    return "".join(chr(ord(x) ^ ord(y)) for x, y in zip(xs, ys))
+
+def pad(message):
+    message += chr(1)
+    while (len(message) % 16) != 0:
+        message += chr(0)
+    return message
+
+s = Solver()
+x = [Int(str(i)) for i in range(16)]
+targets = []
+
+for k, cts in enumerate(ciphertexts):
+    msg = pad(b64decode(messages[k]))
+    nonce = b64decode(cts.split("|")[0])
+    ct = b64decode(cts.split("|")[1])
+    tag = int(cts.split("|")[2])
+
+    en = xor_strings(msg, ct)  # retrieve encrypted nonce
+
+    targets.append(Int("target" + str(k)))
+    s.add(targets[k] == tag)
+
+    const = [ord(ct[i]) + ord(en[i % len(en)]) for i in range(32)] # known values
+
+    s.add(targets[k] ==
+          sum(x[i] * const[i] for i in range(16)) +
+          sum(x[i] * const[i + 16] for i in range(16))
+          )
+
+if s.check() == sat:
+    m = s.model()
+    sols = sorted([(str(d), m[d]) for d in m if not str(d).startswith('target')], key=lambda x: int(x[0]))
+    flag = ''.join(chr(int(str(a[1]))) for a in sols)
+    print(flag)
+else:
+    print("fail")
+```
+
+### MultiSig
+### VincCoin
+
+We are given a list of signed cryptocurrency transactions:
+
+```
+78b6f421356047624c8fa411c5985dbfe076fd92330c3759605a82a6483d455f sends 20 to 7d3eb1486fef20913b5d4f7f6b53c55008674fbbef9a357c2cf59133ae9cd1a2, signature: (5681658071716328178802035634833004324502648744302642662445576541509877960181, 7b52ec175f8280f686f612439236f0c51c1199bc4ef5356803b8b90b662b7daa)
+7d3eb1486fef20913b5d4f7f6b53c55008674fbbef9a357c2cf59133ae9cd1a2 sends 5 to e69342d91fe3aae2c9db50b75aac448ac79f09eff126610141a9e7bc6d1f78fd, signature: (3161493767246842010432635021929094311268987074686214531707299434648018976321, bf4ac3aad16169258c3e1e1b6ea3e8a1c2124736eb98c90925a6c6a14f448bcc)
+...
+```
+
+And the signing operation:
+
+```python
+def sign(message, private_key, d):
+    m = int(sha256(message).hexdigest(), base=16)
+    pd = public_key(d)
+    sig = (d + m * private_key) % order
+    return (sig, pd)
+```
+
+The signatures are a variant on [EdDSA](https://en.wikipedia.org/wiki/EdDSA), a scheme which has a number of advantages over [ECDSA](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm), not least the fact that the nonce is deterministically generated rather than generated directly from an RNG. Use of weak RNGs (or no RNG at all) in ECDSA has lead to [private key recovery](https://github.com/tintinweb/ecdsa-private-key-recovery) in Bitcoin and a crack of [Playstation 3 firmware signing code](https://arstechnica.com/gaming/2010/12/ps3-hacked-through-poor-implementation-of-cryptography/). In contrast, EdDSA nonces are supposed to be generated from the hash of the private key and the message, making it harder to screw up the entire scheme.
+
+Yet in the implementation we are given, nonce *d* is simply a number of unknown origin and we are provided *pd* (*d* raised to the base point of the curve).
+
+Looking at the transaction signatures, several transactions share the same *pd*. This allows us to mount a private key recovery attack described in [this paper](https://eprint.iacr.org/2017/1014.pdf):
+
+![](/images/vincctf/eddsa_nonce_reuse.png)
+
+Once we have recovered the private key for one address, the whole chain of transactions falls apart, as we are able to recover nonces used in different transactions with that key, which allows us to recover other private keys which also reused that nonce. Finally we recover the private key of the last user, which doubles as the flag.
+
+```python
+#!/usr/bin/env python2
+# -*- coding:utf-8 -*-
+#
+# VincCTF 2018 - VincCoin
+
+import binascii
+from hashlib import sha256
+
+from utils.edutils import public_key, scalarmultKeyInt, addKeys, subKeys, hexToInt, basePoint, addKeys2Int
+
+order = 2 ** 252 + 27742317777372353535851937790883648493
+
+
+txes = [
+    ("78b6f421356047624c8fa411c5985dbfe076fd92330c3759605a82a6483d455f sends 20 to 7d3eb1486fef20913b5d4f7f6b53c55008674fbbef9a357c2cf59133ae9cd1a2",
+     (5681658071716328178802035634833004324502648744302642662445576541509877960181, "7b52ec175f8280f686f612439236f0c51c1199bc4ef5356803b8b90b662b7daa")),
+    ("7d3eb1486fef20913b5d4f7f6b53c55008674fbbef9a357c2cf59133ae9cd1a2 sends 5 to e69342d91fe3aae2c9db50b75aac448ac79f09eff126610141a9e7bc6d1f78fd",
+     (3161493767246842010432635021929094311268987074686214531707299434648018976321, "bf4ac3aad16169258c3e1e1b6ea3e8a1c2124736eb98c90925a6c6a14f448bcc")),
+    ("7d3eb1486fef20913b5d4f7f6b53c55008674fbbef9a357c2cf59133ae9cd1a2 sends 10 to b9d6c205574a8926757c8681717711de91d1e329cbc968d28ba6d34b6ed1789f",
+     (4237483542333588621039281068403213367849382836610102342027529549430034870372, "3a9a1dce417e9d28e20484f452ebdcd8604c13dc9fc86752f9542aaf8c2e8384")),
+    ("7d3eb1486fef20913b5d4f7f6b53c55008674fbbef9a357c2cf59133ae9cd1a2 sends 5 to 65e0f87629d5eadb1c2b013da513f8b7cb8623f4d2794d356d1d775f85a79b77",
+     (2818818666017681539777281547124131407894166155315865358680982881373103758923, "bf4ac3aad16169258c3e1e1b6ea3e8a1c2124736eb98c90925a6c6a14f448bcc")),
+    ("b9d6c205574a8926757c8681717711de91d1e329cbc968d28ba6d34b6ed1789f sends 5 to 78b6f421356047624c8fa411c5985dbfe076fd92330c3759605a82a6483d455f",
+     (72556341509017166855652277744440093639703342233069805392666431901733087787, "3a9a1dce417e9d28e20484f452ebdcd8604c13dc9fc86752f9542aaf8c2e8384")),
+    ("78b6f421356047624c8fa411c5985dbfe076fd92330c3759605a82a6483d455f sends 37 to d09680737dac9c8eccbe45601f9203d9654c7cfd5e5f7a0f25bebb8b8ee03a74",
+     (1551996039264106902519757614259395302923220541140212045300324325360275415858, "6690b5734e841a05bce4c84f3392b375094366de910b43a6d06c93ee83eb0763")),
+    ("b9d6c205574a8926757c8681717711de91d1e329cbc968d28ba6d34b6ed1789f sends 5 to e69342d91fe3aae2c9db50b75aac448ac79f09eff126610141a9e7bc6d1f78fd",
+     (409508294506642626519505827609189053249643197581331155542901353019792427890, "7b52ec175f8280f686f612439236f0c51c1199bc4ef5356803b8b90b662b7daa")),
+    ("d09680737dac9c8eccbe45601f9203d9654c7cfd5e5f7a0f25bebb8b8ee03a74 sends 1337 to d09680737dac9c8eccbe45601f9203d9654c7cfd5e5f7a0f25bebb8b8ee03a74",
+     (1806202156589809185629708644129416008492443353377374721757573148167013302030, "6690b5734e841a05bce4c84f3392b375094366de910b43a6d06c93ee83eb0763"))
+]
+
+
+def get_tx_params(tx_no):
+    tx = txes[tx_no]
+    return tx[0], tx[0].split(" ")[0], tx[1][0], tx[1][1]
+
+
+def flag(integer):
+    tmp = hex(integer)[2:-1]
+    if len(tmp) % 2 == 1:
+        tmp = '0' + tmp
+    return binascii.unhexlify(tmp)
+
+
+def sign(message, private_key, d):
+    m = int(sha256(message).hexdigest(), base=16)
+    pd = public_key(d)
+    sig = (d + m * private_key) % order
+    return (sig, pd)
+
+
+def verify(message, signature, public_key):
+    m = int(sha256(message).hexdigest(), base=16)
+    tmp = addKeys(signature[1], scalarmultKeyInt(public_key, m))
+    sp = scalarmultKeyInt(basePoint(), signature[0])
+    return tmp == sp
+
+
+def print_transaction(fr, to, d, amount):
+    pk_fr = public_key(fr)
+    pk_to = public_key(to)
+    x = pk_fr + ' sends ' + str(amount) + ' to ' + pk_to
+    sig = sign(x, fr, d)
+    x += ', signature: (' + str(sig[0]) + ', ' + str(sig[1]) + ')'
+    print x
+
+
+def egcd(a, b):
+    if a == 0:
+        return (b, 0, 1)
+    else:
+        g, y, x = egcd(b % a, a)
+        return (g, x - (b // a) * y, y)
+
+
+def modinv(a, m):
+    g, x, y = egcd(a, m)
+    if g != 1:
+        raise Exception('modular inverse does not exist')
+    else:
+        return x % m
+
+
+def recover_privkey(s1, s2, m1, m2, pd, pubkey):
+    m1 = int(sha256(m1).hexdigest(), base=16)
+    m2 = int(sha256(m2).hexdigest(), base=16)
+
+    priv = (s1 - s2) * modinv(abs(m1 - m2), order)
+
+    return priv
+
+
+def recover_nonce(s1, m1, pd, pubkey, privkey):
+    m1 = int(sha256(m1).hexdigest(), base=16)
+
+    d = (s1 + m1 * privkey) % order
+    print("got d:    %s" % d)
+    print("pd:       %s" % public_key(d))
+    print("known pd: %s" % pd)
+
+    return d
+
+
+def recover_privkey_with_nonce(s1, m1, d, pk):
+    m1 = int(sha256(m1).hexdigest(), base=16)
+
+    priv = ((s1 - d) % order) * modinv(m1, order)
+
+    # Some weirdness with negatives in the representation
+    if public_key(priv) == pk:
+        priv = -priv % order
+
+    print("got a:    %s" % priv)
+    print("A:        %s" % public_key(priv))
+    print("known A:  %s" % pk)
+
+    return priv
+
+
+m1, pk1, s1, pd1 = get_tx_params(1)
+# print(verify(m1, (s1, pd1), pk1))
+m3, _, s3, _ = get_tx_params(3)
+# print(verify(m2, (s3, pd1), pk1))
+
+privkey = recover_privkey(s1, s3, m1, m3, pd1, pk1)
+
+for i, tx in enumerate([2, 4, 6, 0, 5, 7]):
+    print("\nTx %s" % tx)
+    if i % 2 == 0:
+        m, pk, s, pd = get_tx_params(tx)
+        d = recover_nonce(s, m, pd, pk, privkey)
+    else:
+        m, pk, s, _ = get_tx_params(tx)
+        privkey = recover_privkey_with_nonce(s, m, d, pk)
+
+
+print flag(-privkey % order)
+```
