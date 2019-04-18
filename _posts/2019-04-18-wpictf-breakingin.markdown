@@ -114,7 +114,7 @@ First I had to figure out how to pass arguments to the syscalls, as `socket` for
 Now I had the syscalls working it was time to write the proxy. To do this I first had to create two sockets, connect one to localhost:2222 which was the SSH server, and connect the other to my remote server. I then had to write a loop to recv from local and send to remote, and recv from remote and send to local, for this I used the `recvfrom` and `write` syscalls.
 
 The resulting rasm is here:
-```x86
+```
 sys_write:      0x01
 sys_socket:     0x29
 sys_connect:    0x2a
@@ -156,10 +156,7 @@ recvfrom_remote_args: 4 buf 512 0x40 0 addr_len
 
 addr_len: 0 0 0 0 0
 from_addr: 0 0 0 0 0 0 0 0
-buf: 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+buf: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 start:
 // Create two sockets, fd 3 and 4 respectively
