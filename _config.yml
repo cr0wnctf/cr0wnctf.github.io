@@ -1,14 +1,14 @@
 # Site settings
-title: The Cr0wn CTF
-description: "The UK's Top Competitive Cyber Security Team"
-url: 'https://tq2c.tf'
+title: Cr0wn
+description: "The UK's Top CTF Team"
+url: 'https://cr0wn.uk'
 baseurl: ''
 # google_analytics: 'UA-XXXXXX-X'
 # disqus_shortname: 'your-disqus-name'
 
 author:
   name: 'The Cr0wn'
-  email: contact@tq2c.tf
+  email: contact@cr0wn.uk
   github_username: cr0wnctf
 
 defaults:
