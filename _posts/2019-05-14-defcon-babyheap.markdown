@@ -69,12 +69,12 @@ result = 0;
 
 As the heap chunks will be allocated next to each other, we'll be able to overwrite the least significant byte of the next chunks size.
 
-![overflow](/images/defconquals/babyheap/overflow.png)
+![overflow](/images/defconquals19/babyheap/overflow.png)
 
 ## Strengthening the primitive
 We can't use this single byte overflow to gain code execution directly, but we can use it to gain a stronger primitive. We'll do this by changing the size of a chunk from `0xf8` to `0x178`, freeing it and then allocating it again, which lets us overwrite the entire metadata of the next chunk. Note that `0xf8` and `0x178` are the usable chunk sizes. The actual size fields in the chunk metadata will contain `0x100` and `0x180`.
 
-![strengthened primitive](/images/defconquals/babyheap/strengthened_primitive.png)
+![strengthened primitive](/images/defconquals19/babyheap/strengthened_primitive.png)
 
 ## Leak
 This particular libc has a couple of one gadgets, but we'll need to leak a libc address before we can write the one gadget address into the binary. A good way of getting a libc address into the heap is to free a chunk into the unsorted bin. The unsorted bin is a doubly linked circular list, with the head of the list initially pointing into the main arena (which is in libc). The first chunk freed into the unsorted bin will get a main arena address written into its fd pointer.
@@ -90,7 +90,7 @@ for i in range(10):
 
 How do we read the libc address out of the chunk? Using our strengthened overwrite primitive, we can write printable data right up to the edge of the libc address and show the chunk using our show command. All of our printable overflow will be printed, as well as the libc address.
 
-![overflow to the libc address](/images/defconquals/babyheap/overflow_to_libc_address.png)
+![overflow to the libc address](/images/defconquals19/babyheap/overflow_to_libc_address.png)
 
 One slight complication is that the least significant byte in the main arena address is always `\x00`, which prevents the libc address from being printed. I addressed this by overwriting it with a non-null value and fixing it up after the address had been leaked.
 
@@ -109,11 +109,11 @@ libc_base_address = leaked_address - libc.sym["main_arena"] - 0x60
 ## Tcache arbitrary write
 The plan is to overwrite the malloc hook with a one gadget address, because we have an easy way to get malloc called and we can calculate the address of the one gadget and the malloc hook.
 
-![onegadget](/images/defconquals/babyheap/one_gadget.png)
+![onegadget](/images/defconquals19/babyheap/one_gadget.png)
 
 To achieve our arbitrary write, we'll trick glibc into returning the arbitrary address when we call malloc. Tcache makes this really easy, because the bins are just singly linked lists and there are almost no corruption checks (at least in 2.29). We'll free a chunk into the tcache bin, overwrite the next pointer using our strengthened overflow primitive, and after a couple of mallocs, our arbitrary address will be returned.
 
-![tcache overflow](/images/defconquals/babyheap/tcache_overflow.png)
+![tcache overflow](/images/defconquals19/babyheap/tcache_overflow.png)
 
 The full exploit script is as follows:
 ```python
