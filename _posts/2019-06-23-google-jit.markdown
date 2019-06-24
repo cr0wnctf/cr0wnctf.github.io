@@ -303,9 +303,9 @@ The unicode to binary conversions go like this:
 | Digit | Unicode character | Binary representation |
 |-------|-------------------|-----------------------|
 | 0     | U+FF10            | "\xef\xbc\x90"        |
-| 1     | U+FF11            | "\xef\xbc\x90"        |
-| 2     | U+FF12            | "\xef\xbc\x90"        |
-| 3     | U+FF13            | "\xef\xbc\x90"        |
+| 1     | U+FF11            | "\xef\xbc\x91"        |
+| 2     | U+FF12            | "\xef\xbc\x92"        |
+| 3     | U+FF13            | "\xef\xbc\x93"        |
 | ...   |                   |                       |
 
 We need to find a unicode full-width digit string that bypasses the java checks and results in an `\xeb\x01` jump instruction. Once again, we can write some python to find it for us:
