@@ -16,21 +16,21 @@ Time: T-60s \| Hundreds of addresses scrolling in the pwntools shell - I forgot 
 
 Time: T-40s \| **IT WORKED**
 
-![flag](https://voidma.in/assets/19/06/sandstone/pwntools_flag.png)
+![flag](/images/google19/sandstone/pwntools_flag.png)
 
 Time: T-30s \| Flag submitted, [my team](https://cr0wn.uk) placed 16th[^3]. I ponder my life choices.
 
 What follows is a story of how a misunderstanding of the Rust compiler was miraculously resolved at the last minute.
 
 ## The task
-Like others in the sandbox category, this challenge involves escaping a restricted environment. The server is running a Rust binary, [the source for which](https://voidma.in/assets/19/06/sandstone/main.rs) is given. The binary accepts some Rust code, splices it into a file while forbidding `unsafe` blocks[^1], and then compiles and runs that as the child under a `ptrace`-ing parent with strict `seccomp` rules - no opening files, no `execve`, etc. The rule that's most interesting to us is that when we execute syscall number `0x1337`, the parent will capture it and print the flag. So we need to somehow do that using only safe Rust code.
+Like others in the sandbox category, this challenge involves escaping a restricted environment. The server is running a Rust binary, [the source for which](/static/google19/sandstone/main.rs) is given. The binary accepts some Rust code, splices it into a file while forbidding `unsafe` blocks[^1], and then compiles and runs that as the child under a `ptrace`-ing parent with strict `seccomp` rules - no opening files, no `execve`, etc. The rule that's most interesting to us is that when we execute syscall number `0x1337`, the parent will capture it and print the flag. So we need to somehow do that using only safe Rust code.
 
 The author went out of his way to make this as difficult as possible. The `CARGO_TOMPL_TEMPLATE` only includes two crates - `libc` and `seccomp-sys`. The latter is all unsafe, and the source-splicer checks for `"libc"` strings, so we cannot use it. It also forbids uses of `!` (except in `print!`) and `#`, which means macros and compiler directives are out of the question (I don't think Unicode helps here, but who knows). This prevents us from bypassing the `seccomp` sandbox like in the [unintended solution](https://maltekraus.de/blog/ctf/english/2018/10/18/hack-lu.html) to [Rusty Codepad](https://w0y.at/writeup/2018/10/18/hacklu-ctf-2018-rusty-codepad.html) from Hack.lu CTF 2018.
 
 Finally, Non-Lexical Lifetimes are enabled with `#![feature(nll)]`, which in practice means better checking of borrow lifetimes by the compiler. In particular, [rust-lang/rust#31287](https://github.com/rust-lang/rust/issues/31287), which I and others used to solve Rusty Codepad, doesn't work any more.
 
 ## The bug
-From the challenge conditions, it seemed quite clear that I'd need a soundness bug in order to execute arbitrary code. The challenge archive includes a [Dockerfile](https://voidma.in/assets/19/06/sandstone/Dockerfile), which has the exact Rust toolchain listed - `nightly-2019-05-18`. This being fairly new (`1.36`, while the current nightly at the time of writing is `1.37`), I realized that the right bug to use is likely still not fixed, so instead of checking release notes, it's better to look at the issue tracker.
+From the challenge conditions, it seemed quite clear that I'd need a soundness bug in order to execute arbitrary code. The challenge archive includes a [Dockerfile](/static/google19/sandstone/Dockerfile), which has the exact Rust toolchain listed - `nightly-2019-05-18`. This being fairly new (`1.36`, while the current nightly at the time of writing is `1.37`), I realized that the right bug to use is likely still not fixed, so instead of checking release notes, it's better to look at the issue tracker.
 
 Searching the Rust issue tracker for `I-unsound 💥`, I found [#61696](https://github.com/rust-lang/rust/issues/61696), which looked promising.[^2] I reused snippets from the tracker to come up with a PoC:
 ```rust
@@ -95,7 +95,7 @@ let gadget1_addr = (gadget1 as *const u64) as usize;
 ```
 Knowing these, I should be able to overwrite the return address of `$crate::main` (i.e. the "real" one, not the top-level one that Rust binaries have), right? Well, I would **if it had one**. For reasons I will explain in the next section, it would stubbornly end with a `ud2` instruction, which causes `SIGILL`. At that point, I (incorrectly) assumed that Rust does something like `exit()` at the end of `$crate::main` instead of using `ret`, implying I had to create an inner, legit stack frame with a `ret` in the epilogue.
 
-This required more work than simply defining a separate `fn`. You see, my code was compiled using `cargo build --release`, which translates to `rustc -C opt-level=3`. The Rust compiler inlines functions **aggresivelly**. Forcing it not to do that without using `#[inline(never)]` (remember, no `#`s) involves some of possibly the jankiest Rust you will ever see:
+This required more work than simply defining a separate `fn`. You see, my code was compiled using `cargo build --release`, which translates to `rustc -C opt-level=3`. The Rust compiler inlines functions **aggressively**. Forcing it not to do that without using `#[inline(never)]` (remember, no `#`s) involves some of possibly the jankiest Rust you will ever see:
 ```rust
 fn main() {
     let addr: usize = main as *const _ as usize;
@@ -252,9 +252,9 @@ if addr & MSB_MASK == 0 {
 ```
 I don't really know why (and probably don't want to), but if I were to guess, it would be that borrowing (i.e. creating a shared reference to) `b` forces the compiler to treat it as a valid value.
 
-The solution is [here](https://voidma.in/assets/19/06/sandstone/sploit.rs) and [here](https://voidma.in/assets/19/06/sandstone/soln.py).
+The solution is [here](/static/google19/sandstone/sploit.rs) and [here](/static/google19/sandstone/soln.py).
 
-![no hope](https://voidma.in/assets/19/06/sandstone/chat.png)
+![no hope](/images/google19/sandstone/chat.png)
 
 I guess the lesson here is either that sometimes not giving up is worth it, or that CTFs are an unhealthy, dangerous habit kids should stay away from. Huge thanks to [mlen](https://twitter.com/_mlen) for creating this fun, challenging task.
 
