@@ -258,7 +258,7 @@ The solution is [here](/static/google19/sandstone/sploit.rs) and [here](/static/
 
 I guess the lesson here is either that sometimes not giving up is worth it, or that CTFs are an unhealthy, dangerous habit kids should stay away from. Huge thanks to [mlen](https://twitter.com/_mlen) for creating this fun, challenging task.
 
-
+**Update (2019-06-28)**: [This blog post](http://blog.pnkfx.org/blog/2019/06/26/breaking-news-non-lexical-lifetimes-arrives-for-everyone) by a member of the Rust language team goes into detail on the impact of Non-Lexical Lifetimes.
 
 [^1]: Actually the check for `"unsafe"` strings, present in the source, wasn't working on remote, but there is also a `#![forbid(unsafe_code)]` compiler directive in the template, so I couldn't use `unsafe`.
 
