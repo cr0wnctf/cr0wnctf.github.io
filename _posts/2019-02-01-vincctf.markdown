@@ -4,6 +4,7 @@ date:   2019-02-01
 categories: [writeup]
 tags: [writeups, crypto]
 ---
+*Author: hyperreality*
 
 This was a very enjoyable cryptography-only CTF. It explored common implementation errors in modern cryptosystems, with a focus on elliptic curve signatures, broken combination ciphers, and cryptocurrencies.
 
@@ -12,16 +13,6 @@ We discovered this event on Reddit and it does not exist on ctftime, which is a 
 ![](/images/vincctf/scoreboard.png)
 
 The original challenges are hosted [here](https://gitlab.newtownia.net/VincBreaker/vincctf-final).
-
-## Quest: TokenVault
-
-### TokenVault v1
-
-### TokenVault v2
-
-### TokenVault v3
-
-## Santa's Bug Bounty Program
 
 ### Ha Ha Ha 
 
@@ -132,14 +123,6 @@ while "VINCCTF" not in flag:
     print(flag)
 ```
 
-## Quest: The Agency(TM)
-
-### Agency 1
-### Agency 2
-### Agency 3
-
-## Common
-
 ### DeAnonymiser
 
 We are given code for a linkable [ring signature scheme](https://en.wikipedia.org/wiki/Ring_signature) very similar to that used in Monero and presented in the [CryptoNote whitepaper](https://cryptonote.org/whitepaper.pdf). We are also given a short message and a ring signature including 1000 public keys, 1000 signatures, and a key image.
@@ -173,10 +156,6 @@ By expressing the key image purely in terms of the public key, we can compute wh
 
 Vitalik Buterin describes this attack and [writes](https://reddit.com/r/ethereum/comments/75rzdn/linkable_ring_signatures_on_ropsten/doabclr/) it is essential to "use a hash function that outputs points with no known private keys".
 
-### Distinguish me
-### DRNG
-### EcRSA
-### Enigma
 ### Fast hashes
 
 The source code is for a keyed [sponge function](https://en.wikipedia.org/wiki/Sponge_function). We provide input to the challenge server, and it uses the flag as the key and returns us the hash.
@@ -303,10 +282,6 @@ state[1] ^= 0xFF
 print(struct.pack(">QQQQ", *state))
 ```
 
-
-### Fixed points
-### hProof
-
 ### KMAC
 
 This time, the flag is the key. 16 random messages are generated and encrypted and signed. The encryption is AES-ECB of a nonce, which is then XOR'd with the blocks of the message. We know the ciphertext so we can recover the encrypted nonce.
@@ -380,7 +355,6 @@ else:
     print("fail")
 ```
 
-### MultiSig
 ### VincCoin
 
 We are given a list of signed cryptocurrency transactions:
