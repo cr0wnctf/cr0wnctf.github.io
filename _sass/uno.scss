@@ -1217,29 +1217,6 @@ hr {
 	width: 100%;
 	max-width: none;
 	height: 100%;
-/*	background: linear-gradient(84deg, #5b2a77, #2a9dd4, #269c45, #eee53d, #f4a530, #e33933) !important;
-	background-size: 1200% 1200% !important;
-
-	-webkit-animation: bg 59s ease infinite;
-	-moz-animation: bg 59s ease infinite;
-	animation: bg 59s ease infinite;
-
-	@-webkit-keyframes bg {
-	    0%{background-position:93% 0%}
-	    50%{background-position:0% 100%}
-	    100%{background-position:93% 0%}
-	}
-	@-moz-keyframes bg {
-	    0%{background-position:93% 0%}
-	    50%{background-position:0% 100%}
-	    100%{background-position:93% 0%}
-	}
-	@keyframes bg { 
-	    0%{background-position:93% 0%}
-	    50%{background-position:0% 100%}
-	    100%{background-position:93% 0%}
-	}*/
-
 	background: url(../images/cover.jpg) bottom left no-repeat #666666;
 	background-size: cover; }
 
@@ -1255,9 +1232,6 @@ hr {
 	right: 0;
 	bottom: 0;
 	left: 0;
-	/*background-color: rgba(68, 68, 68, 0.6);
-	background-image: -webkit-linear-gradient(-410deg, rgba(68, 68, 68, 0.6) 20%, rgba(0, 0, 0, 0.9));
-	background-image: linear-gradient(140deg,rgba(68, 68, 68, 0.6) 20%, rgba(0, 0, 0, 0.9)); }*/
 	}
 
 .panel-cover__logo {
