@@ -1,6 +1,6 @@
 # Site settings
-title: Cr0wn
-description: "The UK's Top CTF Team"
+title: the cr0wn
+description: "the UK’s top competitive cyber security team"
 url: 'https://cr0wn.uk'
 baseurl: ''
 # google_analytics: 'UA-XXXXXX-X'
@@ -9,6 +9,7 @@ baseurl: ''
 author:
   name: 'The Cr0wn'
   email: contact@cr0wn.uk
+  twitter_username: cr0wn
   github_username: cr0wnctf
 
 defaults:

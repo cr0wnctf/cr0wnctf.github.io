@@ -1,4 +1,4 @@
-@import 'https://fonts.googleapis.com/css?family=Raleway:400,700|Roboto+Slab:300,400)';
+@import url('https://fonts.googleapis.com/css?family=Nunito+Sans:400,700&display=swap');
 /* http://meyerweb.com/eric/tools/css/reset/
 	 v2.0 | 20110126
 	 License: none (public domain)
@@ -925,7 +925,7 @@ html {
 	max-height: 100%; }
 
 body {
-	font-family: "Raleway", sans-serif;
+	font-family: "Nunito Sans", sans-serif;
 	font-size: 1em;
 	color: #666666; }
 
@@ -937,9 +937,9 @@ body {
 
 a {
 	text-decoration: none;
-	color: #e25440; }
+	color: #2a9dd4; }
 	a:hover {
-		color: #b9301c;
+		color: #5bcaff;
 		-o-transition: .5s;
 		-ms-transition: .5s;
 		-moz-transition: .5s;
@@ -953,7 +953,7 @@ h5,
 h5 {
 	margin-top: .8em;
 	margin-bottom: .4em;
-	font-family: "Roboto Slab", serif;
+	font-family: "Nunito Sans", serif;
 	font-weight: lighter;
 	color: #333333;
 	-webkit-font-smoothing: antialiased; }
@@ -995,7 +995,7 @@ blockquote {
 	background: #f8f8f8;
 	border: 1px solid #eeeeee;
 	border-radius: 3px;
-	font-family: "Roboto Slab", serif;
+	font-family: "Nunito Sans", serif;
 	font-weight: lighter;
 	font-style: italic;
 	font-size: 1.3em;
@@ -1055,7 +1055,7 @@ pre {
 		.time a:hover,
 		.author a:hover,
 		.tags a:hover {
-			color: #b9301c; }
+			color: #5bcaff; }
 
 .excerpt {
 	margin: 0;
@@ -1063,7 +1063,7 @@ pre {
 	color: #999999; }
 
 .intro {
-	font-family: "Roboto Slab", serif;
+	font-family: "Nunito Sans", serif;
 	font-size: 1.2em;
 	font-weight: lighter;
 	color: #999999; }
@@ -1120,7 +1120,7 @@ pre {
 		color: #a6a6a6;
 		text-decoration: underline; }
 		.footer__copyright a:hover {
-			color: #b9301c; }
+			color: #5bcaff; }
 
 .avatar,
 .logo {
@@ -1151,6 +1151,7 @@ hr {
 	margin-right: .5em; }
 
 .post-meta__tags {
+	padding: 0 !important;
 	margin-left: .4em; }
 
 .post-meta__author {
@@ -1190,19 +1191,25 @@ hr {
 	vertical-align: middle; }
 
 .panel-title {
-	margin: 0 0 5px 0;
+	margin: 0 0 0 0;
 	font-size: 2.5em;
-	letter-spacing: 4px;
+	font-weight: bold;
+	text-shadow: 0px 3px 0px #0000001f;
+	letter-spacing: 1px;
 	color: #FFF; }
 
 .panel-subtitle {
-	font-family: "Roboto Slab", serif;
+	font-family: "Nunito Sans", serif;
 	font-size: 1.2em;
 	font-weight: lighter;
 	letter-spacing: 3px;
 	color: #cccccc;
 	-webkit-font-smoothing: antialiased; }
 
+.crown-logo {
+	width: 130px;
+	padding-bottom: 0px;
+}
 .panel-cover {
 	display: block;
 	position: fixed;
@@ -1210,7 +1217,30 @@ hr {
 	width: 100%;
 	max-width: none;
 	height: 100%;
-	background: url(../images/background-cover.jpg) top left no-repeat #666666;
+/*	background: linear-gradient(84deg, #5b2a77, #2a9dd4, #269c45, #eee53d, #f4a530, #e33933) !important;
+	background-size: 1200% 1200% !important;
+
+	-webkit-animation: bg 59s ease infinite;
+	-moz-animation: bg 59s ease infinite;
+	animation: bg 59s ease infinite;
+
+	@-webkit-keyframes bg {
+	    0%{background-position:93% 0%}
+	    50%{background-position:0% 100%}
+	    100%{background-position:93% 0%}
+	}
+	@-moz-keyframes bg {
+	    0%{background-position:93% 0%}
+	    50%{background-position:0% 100%}
+	    100%{background-position:93% 0%}
+	}
+	@keyframes bg { 
+	    0%{background-position:93% 0%}
+	    50%{background-position:0% 100%}
+	    100%{background-position:93% 0%}
+	}*/
+
+	background: url(../images/cover.jpg) bottom left no-repeat #666666;
 	background-size: cover; }
 
 .panel-cover--collapsed {
@@ -1225,9 +1255,10 @@ hr {
 	right: 0;
 	bottom: 0;
 	left: 0;
-	background-color: rgba(68, 68, 68, 0.6);
+	/*background-color: rgba(68, 68, 68, 0.6);
 	background-image: -webkit-linear-gradient(-410deg, rgba(68, 68, 68, 0.6) 20%, rgba(0, 0, 0, 0.9));
-	background-image: linear-gradient(140deg,rgba(68, 68, 68, 0.6) 20%, rgba(0, 0, 0, 0.9)); }
+	background-image: linear-gradient(140deg,rgba(68, 68, 68, 0.6) 20%, rgba(0, 0, 0, 0.9)); }*/
+	}
 
 .panel-cover__logo {
 	margin-bottom: .2em; }
@@ -1273,7 +1304,7 @@ hr {
 	font-weight: 100;
 	text-align: center;
 	color: #FFF;
-	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4); }
+	text-shadow: 0 2px 0px rgba(0, 0, 0, 0.18); }
 	.panel-inverted a {
 		color: #FFF; }
 
@@ -1308,7 +1339,7 @@ hr {
 
 .btn, .navigation__item a {
 	padding: 10px 20px;
-	border: 1px solid #e25440;
+	border: 2px solid #e25440;
 	border-radius: 20px;
 	font-size: .9em;
 	font-weight: bold;
@@ -1317,8 +1348,8 @@ hr {
 	color: #e25440;
 	-webkit-font-smoothing: antialiased; }
 	.btn:hover, .navigation__item a:hover {
-		color: #b9301c;
-		border-color: #b9301c; }
+		color: #5bcaff;
+		border-color: #5bcaff; }
 
 .btn-secondary {
 	border-color: #5ba4e5;
@@ -1443,7 +1474,7 @@ i {
 	.post-list__post-title a {
 		color: #333333; }
 		.post-list__post-title a:hover {
-			color: #b9301c; }
+			color: #5bcaff; }
 
 .post-list__meta {
 	display: block;
@@ -1452,7 +1483,7 @@ i {
 	color: #c7c7c7; }
 
 .post-list__meta--date {
-	margin-right: .5em;
+	text-transform: lowercase;
 	color: #c7c7c7; }
 
 .post-list__meta--tags {
