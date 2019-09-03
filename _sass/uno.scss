@@ -1098,7 +1098,6 @@ pre {
 .content-wrapper {
 	z-index: 800;
 	width: 60%;
-	max-width: 900px;
 	margin-left: 40%; }
 
 .content-wrapper__inner {
@@ -1107,10 +1106,12 @@ pre {
 
 .footer {
 	display: block;
-	padding: 2em 0 0 0;
-	border-top: 2px solid #dddddd;
+	padding: 17px 0 6px 0;
+	background: #f9f9f9;
 	font-size: .7em;
-	color: #b3b3b3; }
+	margin-left: 530px;
+	text-transform: lowercase;
+	color: #84848494; }
 
 .footer__copyright {
 	display: block;
