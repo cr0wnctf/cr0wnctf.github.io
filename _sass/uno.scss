@@ -992,7 +992,6 @@ blockquote {
 	margin: 1em 0;
 	padding: 1.5em 1.5em;
 	background: #f8f8f8;
-	border: 1px solid #eeeeee;
 	border-radius: 10px;
 	font-family: "Nunito Sans", serif;
 	font-weight: lighter;
@@ -1107,16 +1106,14 @@ pre {
 
 .footer {
 	display: block;
-	padding: 17px 0 6px 0;
-	background: #f9f9f9;
+	background-image: linear-gradient(to right, #f9f9f9, white);
 	font-size: .7em;
-	margin-left: 530px;
 	text-transform: lowercase;
 	color: #84848494; }
 
 .footer__copyright {
-	display: block;
-	margin-bottom: .7em; }
+	padding: 1.5em;
+	display: block; }
 	.footer__copyright a {
 		color: #a6a6a6;
 		text-decoration: underline; }
@@ -1153,7 +1150,6 @@ hr {
 	text-transform: lowercase; }
 
 .post-meta__tags {
-	padding: 0 !important;
 	margin-left: .4em; }
 
 .post-meta__author {
@@ -1209,7 +1205,7 @@ hr {
 	-webkit-font-smoothing: antialiased; }
 
 .crown-logo {
-	width: 100px;
+	width: 20%;
 	padding-bottom: 0px;
 }
 .panel-cover {
@@ -1467,7 +1463,7 @@ i {
 
 .post-list__divider {
 	width: 100%;
-	margin: 1.2em 0 1.1em 0;
+	margin: 1.8em 0 1.1em 0;
 	border-top: 1px solid #dddddd4f; }
 
 *:focus {
