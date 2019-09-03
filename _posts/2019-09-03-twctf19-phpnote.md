@@ -307,6 +307,16 @@ on their slides, describing the new method as:
 A nice summary, except it's **_incorrect_**. Whilst the slides _do_ show it being used in a
 SSRF context, but it's not a SSRF technique! I should have read the source material
 better since I discarded this technique early on despite most signs pointing to
-it because I thought it was SSRF dependent! The Defender Technique is acutally
-more like a Local File Disclosure vulnerability. Portswigger why you gotta do me
+it because I thought it was SSRF dependent! The Defender Technique is actually
+more akin to a Local File Disclosure Portswigger why you gotta do me
 dirty :(?
+
+The Defender Leaks is an interesting one, it's in the same vein as the [35c3
+Challenge](https://gist.github.com/l4wio/3a6e9a7aea5acd7a215cdc8a8558d176) which
+involved abusing security software to leak internal information. The Defender
+flaw is that it will execute any Javascript it just finds lying around in files that
+gets read from disk! We can abuse the
+[EICAR](https://en.wikipedia.org/wiki/EICAR_test_file) test file to leak
+information about characters in files on disk. See!? No SSRF involed. The catch
+is that we need to be able to write user controlled data to a file. But the PHP
+script doesn't write anything?
