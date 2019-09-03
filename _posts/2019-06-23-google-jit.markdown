@@ -1,5 +1,5 @@
 ---
-title: "Google CTF 2019 - JIT (pwn)"
+title: "Google CTF 2019 Quals: JIT (pwn)"
 date: 2019-05-14
 categories: [writeup]
 tags: [writeups, pwn]

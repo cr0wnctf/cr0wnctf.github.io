@@ -1,5 +1,5 @@
 ---
-title:  "SECCON Ghostkingdom Writeup"
+title:  "SECCON 2018: Ghostkingdom (web)"
 date:   2018-11-29
 categories: [writeup]
 tags: [writeups, web]

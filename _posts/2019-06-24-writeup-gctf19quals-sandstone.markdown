@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Google CTF 2019 (Quals): Sandstone (Sandbox, 383 pts, 8 solves)"
+title:  "Google CTF 2019 Quals: Sandstone (sandbox, 8 solves)"
 date:   2019-06-24 16:00:00 +0100
 categories: [writeup]
 tags: [writeups, pwn, rust, seccomp, sandbox]

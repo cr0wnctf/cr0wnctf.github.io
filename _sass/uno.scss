@@ -1018,7 +1018,6 @@ ul {
 code {
 	padding: .1em .4em;
 	background: #e8f2fb;
-	border: 1px solid #c9e1f6;
 	border-radius: 3px;
 	font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
 	font-size: .85em; }
@@ -1166,7 +1165,7 @@ hr {
 .post img {
 	max-width: 100%;
 	margin: 0 auto;
-	border-radius: 3px;
+	border-radius: 10px;
 	text-align: center; }
 .post pre {
 	width: 95%; }
