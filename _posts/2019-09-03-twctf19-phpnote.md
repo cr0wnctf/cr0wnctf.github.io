@@ -288,9 +288,8 @@ login. It's salted (and peppered) before being hashed using md5. Without the
 `SALT` and `PEPPER` values, we can't work out the secret to forge a `Note`.
 
 One other odd thing, it seems the challenge is hosted on `IIS/8.0` - this means
-we're attacking a Windows OS. This is odd for a webserver and a CTF one at that
-which are almost exclusively Linux based using Nginx or Apache. I'm sure it's
-not relevant...
+we're attacking a Windows OS. This is weird for a server which are almost
+exclusively Linux based using Nginx or Apache. I'm sure it's not relevant...
 
 ## 0x01 Windows Defender? More like Windows Defendon't
 
@@ -308,4 +307,6 @@ on their slides, describing the new method as:
 A nice summary, except it's **_incorrect_**. Whilst the slides _do_ show it being used in a
 SSRF context, but it's not a SSRF technique! I should have read the source material
 better since I discarded this technique early on despite most signs pointing to
-it! The Defender Technique is acutally more like a Local File Disclosure vulnerability.
+it because I thought it was SSRF dependent! The Defender Technique is acutally
+more like a Local File Disclosure vulnerability. Portswigger why you gotta do me
+dirty :(?
