@@ -6,7 +6,7 @@ tags: [writeups, web, side-channel, defender, twctf19]
 ---
 *Author: 0x6e6576657220676f6e6e61*
 
-## 0x00 Challenge
+## 0x00 Challenge Setup
 
 As is CTF tradition, we have yet another "Notes" app we have to break in some
 way. And they're kind enough to provide the source code to help take some of the
@@ -212,7 +212,6 @@ if (is_login()) {
 }
 ```
 ```php
-
 class Note {
     public function __construct($admin) {
         $this->notes = array();
@@ -237,7 +236,7 @@ class Note {
 [...]
 
 if ($action === 'getflag') {
-    $note->getflag();                 <- [2]
+    $note->getflag();        <- [2]
 }
 
 ```
@@ -245,4 +244,68 @@ if ($action === 'getflag') {
 Here we can see the target, we need to somehow forge a `Note` object that has
 the `$this->isadmin` field set to true. We can see at **[1]** that we can supply a
 base64 encoded serialised PHP object which gets unserialised and used as the
-object to call `getflag()` on **[2]**. However this is guarded at **[3]**
+object to call `getflag()` on **[2]**. However this is guarded **[3]** with a
+verify function:
+
+```php
+function verify($data, $hmac) {
+    $secret = $_SESSION['secret'];
+    if (empty($secret)) return false;
+    return hash_equals(hash_hmac('sha256', $data, $secret), $hmac);
+}
+```
+
+This is a [HMAC check](https://en.wikipedia.org/wiki/HMAC), without knowing
+`$secret` we can't forge a malicious `Note` object with `isadmin` set to true.
+We can see the secret is generated using one of our login inputs:
+
+```php
+function gen_secret($seed) {
+    return md5(SALT . $seed . PEPPER);
+}
+[...]
+if ($action === 'login') {
+    if ($method === 'POST') {
+        $nickname = (string)$_POST['nickname'];
+        $realname = (string)$_POST['realname'];
+
+        if (empty($realname) || strlen($realname) < 8) {
+            die('invalid name');
+        }
+
+        $_SESSION['realname'] = $realname;
+        if (!empty($nickname)) {
+            $_SESSION['nickname'] = $nickname;
+        }
+        $_SESSION['secret'] = gen_secret($nickname);  <- [4]
+    }
+    redirect('index');
+}
+```
+
+The secret is generated at **[4]** from the `nickname` we give in the inital
+login. It's salted (and peppered) before being hashed using md5. Without the
+`SALT` and `PEPPER` values, we can't work out the secret to forge a `Note`.
+
+One other odd thing, it seems the challenge is hosted on `IIS/8.0` - this means
+we're attacking a Windows OS. This is odd for a webserver and a CTF one at that
+which are almost exclusively Linux based using Nginx or Apache. I'm sure it's
+not relevant...
+
+## 0x01 Windows Defender? More like Windows Defendon't
+
+We can't brutforce `SALT` and `PEPPER` (I know, I tried for 3hrs), so we need to
+find a way to leak the secret itself or some crypto dark magic to make a
+matching HMAC for a forged `Note`. The key was using a presentation from the
+same team who ran the CTF, TokyoWesterns and their new [exploit
+technique](https://westerns.tokyo/wctf2019-gtf/wctf2019-gtf-slides.pdf).
+Portswigger did a
+[summary](https://portswigger.net/daily-swig/av-oracle-new-hacking-technique-leverages-antivirus-to-steal-secrets)
+on their slides, describing the new method as: 
+>**A specialized server-side request forgery (SSRF) technique** that takes
+>advantage of the security mechanisms embedded in Windows Defender
+
+A nice summary, except it's **_incorrect_**. Whilst the slides _do_ show it being used in a
+SSRF context, but it's not a SSRF technique! I should have read the source material
+better since I discarded this technique early on despite most signs pointing to
+it! The Defender Technique is acutally more like a Local File Disclosure vulnerability.
