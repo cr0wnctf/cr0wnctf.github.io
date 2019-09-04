@@ -4,9 +4,8 @@ title:  "Google CTF 2019 Quals: Sandstone (sandbox, 8 solves)"
 date:   2019-06-24 16:00:00 +0100
 categories: [writeup]
 tags: [writeups, pwn, rust, seccomp, sandbox]
+authors: [Vtec234]
 ---
-
-*Author: Vtec234*
 
 At 00:58 local time, two minutes before the end of the qualifiers for Google CTF 2019, drenched in sweat and shaking, I launched my exploit.
 
