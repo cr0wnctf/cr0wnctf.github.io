@@ -1,5 +1,5 @@
 ---
-title:  "PlaidCTF 2019 - Triggered"
+title:  "PlaidCTF 2019: Triggered (web)"
 date:   2019-04-18
 categories: [writeup]
 tags: [writeups, web]

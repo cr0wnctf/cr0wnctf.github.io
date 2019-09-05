@@ -1,5 +1,5 @@
 ---
-title:  "WPICTF 2019 - breakingin - pwn 500"
+title:  "WPICTF 2019: breakingin (pwn)"
 date:   2019-04-18
 categories: [writeup]
 tags: [writeups, pwn]

@@ -1,10 +1,10 @@
 ---
-title:  "SECCON Ghostkingdom Writeup"
+title:  "SECCON 2018: Ghostkingdom (web)"
 date:   2018-11-29
 categories: [writeup]
 tags: [writeups, web]
+authors: ["0x6e6576657220676f6e6e61", p4wn, $udo]
 ---
-**Solved by: 0x6e6576657220676f6e6e61, p4wn, $ud0**
 
 This is a writeup of the Ghostkingdom web challenge from SECCON 2018 Online CTF.
 

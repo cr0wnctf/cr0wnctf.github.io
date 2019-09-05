@@ -3,8 +3,8 @@ title:  "Chaos Communication Camp 2019"
 date:   2019-08-25
 categories: [writeup]
 tags: [writeups, crypto]
+authors: [hyperreality]
 ---
-*Author: hyperreality*
 
 ## Prejudiced Randomness 1
 

@@ -1,11 +1,10 @@
 ---
-title: "DEF CON CTF Quals 2019 - babyheap (pwn)"
+title: "DEF CON CTF 2019 Quals: babyheap (pwn, 88 solves)"
 date: 2019-05-14
 categories: [writeup]
 tags: [writeups, pwn]
+authors: [brnby]
 ---
-
-*Author: brnby*
 
 This weekend I competed in the DEF CON qualifiers with my CTF team **the cr0wn**. We also joined forces with #2 ranking UK team **EmpireCTF**, playing under the name **EmpireCr0wn**. I solved the *babyheap* challenge, which had a total of 88 solves and was worth 112 points.
 
