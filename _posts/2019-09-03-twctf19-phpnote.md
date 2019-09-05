@@ -313,10 +313,50 @@ dirty :(?
 
 The Defender Leaks is an interesting one, it's in the same vein as the [35c3
 Challenge](https://gist.github.com/l4wio/3a6e9a7aea5acd7a215cdc8a8558d176) which
-involved abusing security software to leak internal information. The Defender
+involved abusing defensive security software to leak internal information. The Defender
 flaw is that it will execute any Javascript it just finds lying around in files that
 gets read from disk! We can abuse the
-[EICAR](https://en.wikipedia.org/wiki/EICAR_test_file) test file to leak
-information about characters in files on disk. See!? No SSRF involed. The catch
+[EICAR](https://en.wikipedia.org/wiki/EICAR_test_file) (and JavaScript) test file to leak
+information about characters in files on disk. See!? No SSRF involved. The catch
 is that we need to be able to write user controlled data to a file. But the PHP
-script doesn't write anything?
+script doesn't write anything? Whilst that it's true that the PHP script doesn't
+create any extra files, the PHP interpreter _does_. 
+
+## 0x02 Docker? I hardly knew her
+
+I find it a good idea, when doing challenges with source code available, to host
+it locally so I can get a better idea of what's going on. Using docker we can
+quite nicely setup a dev ctf environment:
+
+```
+docker run --rm -p 80:80 --name php_ctf -v "$PWD":/var/www/html php:7.2-apache
+```
+ 
+This will spin up an Apache server with PHP enabled. If you run this in the same
+directory as the source code of the challenge saved as `index.php`you can browse
+to `http://localhost` to see it live. After logging into the site, we see that
+PHP stores our sessions files in `/tmp`
+
+```
+docker exec -it my-apache-php-app ls -al /tmp
+```
+
+We can see a PHP created a session file at `/tmp/sess_*`:
+```
+drwxrwxrwt 1 root     root     4096 Sep  5 00:45 .
+drwxr-xr-x 1 root     root     4096 Sep  5 00:44 ..
+-rw------- 1 www-data www-data   98 Sep  5 00:45 sess_9bbcc104b32fbcac0edafd9cb0432991
+```
+Reading the file:
+```
+docker exec -it my-apache-php-app cat /tmp/sess_9bbcc104b32fbcac0edafd9cb0432991
+```
+
+We can see what a PHP session looks like:
+```
+realname|s:14:"Hello There...";nickname|s:14:"General Kenobi";secret|s:32:"742de24238d4adc573b03a2b3589c5e5";
+```
+
+This is exactly what a Defender leak needs! A file on disk that gets read per
+user request which contains user controlled data and some secret we want to get
+our hands on.
