@@ -80,7 +80,7 @@ session_start();
 if (is_login()) {
     $realname = $_SESSION['realname'];
     $nickname = $_SESSION['nickname'];
-    
+
     $note = verify($_COOKIE['note'], $_COOKIE['hmac'])
             ? unserialize(base64_decode($_COOKIE['note']))
             : new Note(false);
@@ -193,7 +193,7 @@ if ($action === 'getflag') {
             })
         </script>
     </body>
-</html> 
+</html>
 ```
 
 This is quite a compact application, the bulk of the PHP source code only runs
@@ -205,7 +205,7 @@ bits are:
 if (is_login()) {
     $realname = $_SESSION['realname'];
     $nickname = $_SESSION['nickname'];
-    
+
     $note = verify($_COOKIE['note'], $_COOKIE['hmac'])       <- [3]
             ? unserialize(base64_decode($_COOKIE['note']))   <- [1]
             : new Note(false);
@@ -300,7 +300,7 @@ same team who ran the CTF, TokyoWesterns and their new [exploit
 technique](https://westerns.tokyo/wctf2019-gtf/wctf2019-gtf-slides.pdf).
 Portswigger did a
 [summary](https://portswigger.net/daily-swig/av-oracle-new-hacking-technique-leverages-antivirus-to-steal-secrets)
-on their slides, describing the new method as: 
+on their slides, describing the new method as:
 >**A specialized server-side request forgery (SSRF) technique** that takes
 >advantage of the security mechanisms embedded in Windows Defender
 
@@ -320,7 +320,7 @@ gets read from disk! We can abuse the
 information about characters in files on disk. See!? No SSRF involved. The catch
 is that we need to be able to write user controlled data to a file. But the PHP
 script doesn't write anything? Whilst that it's true that the PHP script doesn't
-create any extra files, the PHP interpreter _does_. 
+create any extra files, the PHP interpreter _does_.
 
 ## 0x02 Docker? I hardly knew her
 
@@ -331,7 +331,7 @@ quite nicely setup a dev ctf environment:
 ```
 docker run --rm -p 80:80 --name php_ctf -v "$PWD":/var/www/html php:7.2-apache
 ```
- 
+
 This will spin up an Apache server with PHP enabled. If you run this in the same
 directory as the source code of the challenge saved as `index.php`you can browse
 to `http://localhost` to see it live. After logging into the site, we see that
