@@ -1104,8 +1104,9 @@ pre {
 	padding: 50px 0; }
 
 .footer {
+	text-align: center;
 	display: block;
-	background-image: linear-gradient(to right, #f9f9f9, white);
+	background-image: linear-gradient(to right, #fff, #f9f9f9, #f9f9f9, #f9f9f9, white);
 	font-size: .7em;
 	text-transform: lowercase;
 	color: #84848494; }
