@@ -1,5 +1,5 @@
 ---
-title: "DEF CON CTF 2019 Quals: babyheap (pwn)"
+title: "DEF CON CTF 2019 Quals: babyheap (pwn, 88 solves)"
 date: 2019-05-14
 categories: [writeup]
 tags: [writeups, pwn]
