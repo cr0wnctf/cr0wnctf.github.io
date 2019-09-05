@@ -338,25 +338,20 @@ to `http://localhost` to see it live. After logging into the site, we see that
 PHP stores our sessions files in `/tmp`
 
 ```
-docker exec -it my-apache-php-app ls -al /tmp
-```
+$ docker exec -it my-apache-php-app ls -al /tmp
 
-We can see a PHP created a session file at `/tmp/sess_*`:
-```
 drwxrwxrwt 1 root     root     4096 Sep  5 00:45 .
 drwxr-xr-x 1 root     root     4096 Sep  5 00:44 ..
 -rw------- 1 www-data www-data   98 Sep  5 00:45 sess_9bbcc104b32fbcac0edafd9cb0432991
 ```
+
 Reading the file:
 ```
-docker exec -it my-apache-php-app cat /tmp/sess_9bbcc104b32fbcac0edafd9cb0432991
-```
+$ docker exec -it my-apache-php-app cat /tmp/sess_9bbcc104b32fbcac0edafd9cb0432991
 
-We can see what a PHP session looks like:
-```
 realname|s:14:"Hello There...";nickname|s:14:"General Kenobi";secret|s:32:"742de24238d4adc573b03a2b3589c5e5";
 ```
 
-This is exactly what a Defender leak needs! A file on disk that gets read per
+We can see the session file contents, This is exactly what a Defender leak needs! A file on disk that gets read per
 user request which contains user controlled data and some secret we want to get
 our hands on.
