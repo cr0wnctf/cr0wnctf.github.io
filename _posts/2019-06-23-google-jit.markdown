@@ -1,11 +1,10 @@
 ---
-title: "Google CTF 2019 - JIT (pwn)"
+title: "Google CTF 2019 Quals: JIT (pwn)"
 date: 2019-05-14
 categories: [writeup]
 tags: [writeups, pwn]
+authors: [brnby]
 ---
-
-*Author: brnby*
 
 > We read on the internet that Java is slow so we came up with the solution to speed up some computations!
 

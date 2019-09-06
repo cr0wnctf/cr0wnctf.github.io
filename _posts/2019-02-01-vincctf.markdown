@@ -1,10 +1,10 @@
 ---
-title:  "VincCTF Writeup"
+title:  "VincCTF 2018"
 date:   2019-02-01
 categories: [writeup]
 tags: [writeups, crypto]
+authors: [hyperreality]
 ---
-*Author: hyperreality*
 
 This was a very enjoyable cryptography-only CTF. It explored common implementation errors in modern cryptosystems, with a focus on elliptic curve signatures, broken combination ciphers, and cryptocurrencies.
 
