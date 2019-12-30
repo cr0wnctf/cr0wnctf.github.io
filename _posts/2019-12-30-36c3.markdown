@@ -1,0 +1,130 @@
+---
+title:  "hxp 36C3 CTF"
+date:   2019-12-30
+categories: [writeup]
+tags: [writeups, crypto]
+authors: [hyperreality]
+---
+
+## Nacht
+
+> Description:
+> Our yearly misusing-the-unmisusable challenge.
+> 
+> Download: [nacht-d2584f79058ea013.tar.xz](https://2019.ctf.link/assets/files/nacht-d2584f79058ea013.tar.xz) (760 Bytes)
+>
+> Connection: nc 88.198.156.141 2833
+
+NaCl, short for "Networking and Cryptography Library" is a collection of easy-to-use cryptography primitives based on Daniel Bernstein et al.'s schemes, including [Ed25519](https://en.wikipedia.org/wiki/EdDSA), [Salsa20](https://en.wikipedia.org/wiki/Salsa20), and [Poly1305](https://en.wikipedia.org/wiki/Poly1305). These schemes are growing in popularity due to their high performance, resistance to strong attacks so far, and Bernstein's excellent reputation. They are finally making it into widespread protocols like [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security#TLS_1.3), which from v1.3 requires support of Ed25519 as a key agreement scheme.
+
+[TweetNaCl](https://tweetnacl.cr.yp.to) is a tiny implementation of all 25 main NaCl functions written in C, so-called because the entire thing can fit into 100 tweets&mdash;and that's _before_ Twitter doubled the limit to 280 characters!
+
+In this challenge we are given a Python script that interfaces with a TweetNaCl shared object which we must compile from sources. The provided Makefile simply downloads the official sources from [https://tweetnacl.cr.yp.to](https://tweetnacl.cr.yp.to), throws in a definition of `randombytes` to give the library a [CSRNG](https://en.wikipedia.org/wiki/Cryptographically_secure_pseudorandom_number_generator) source, and builds the shared object using GCC.
+
+The Python script comprises:
+ 1. a method to produce a [MAC/tag](https://en.wikipedia.org/wiki/Message_authentication_code) of a message.
+ 1. a method to verify that a tag corresponds to a message.
+ 1. a loop that creates 32 tags of 32 random 32-byte messages, using (what appears to be) the _same_ randomly-generated key.
+ 1. a challenge which sends us a message and asks us to provide the correct tag for it under the same key.
+
+[ctypes](https://docs.python.org/3/library/ctypes.html) is employed to plug the Python methods directly into the TweetNaCl Poly1305 functions:
+
+```python
+lib = ctypes.CDLL('./tweetnacl.so')
+
+def mac(key, msg):
+    tag = ctypes.create_string_buffer(16)
+    lib.crypto_onetimeauth_poly1305_tweet(tag, key, len(msg), msg)
+    return bytes(tag)
+
+def chk(key, tag, msg):
+    return not lib.crypto_onetimeauth_poly1305_tweet_verify(tag, key, len(msg), msg)
+```
+
+Due to the challenge description, we immediately searched for information on these functions' signatures to check they are being called properly. According to the [documentation](https://nacl.cr.yp.to/onetimeauth.html), they are not! The `key` and `msg` parameters are incorrectly switched around. Note the `mlen` parameter is irrelevant as both `key` and `msg` are 32-bytes long.
+
+To understand the implications of these misused parameters, we found a lightweight [Python implementation of Poly1305](https://github.com/ph4r05/py-chacha20poly1305) to help us dig into the guts of algorithm. Filippo Valsorda also has a very clear [explanation](https://blog.filippo.io/a-literate-go-implementation-of-poly1305/) along with annotated Go code. The algorithm turned out to be a lot more simple than we expected.
+
+Essentially a Poly1305 tag over a 32-byte message can be expressed as the following equation:
+
+$$s + m_0 * r^2 + m_1 * r \mod  2^{130} - 5$$
+
+Where $$r$$ and $$s$$ are each half of the key, and $$m_n$$ are successive 16-byte chunks of the message. $$2^{130} - 5$$ is a prime number cleverly chosen to make modular reduction more efficient. There are details about this and other implementation choices [here](http://loup-vaillant.fr/tutorials/poly1305-design), but they weren't critical for solving the challenge.
+
+Since we are (mistakenly) given the key, we know $$r$$ and $$s$$, and the only unknowns in the equation are $$m_0$$ and $$m_1$$, which are the same for all 32 messages we have been sent. Thus we need just a few messages to be able to solve for those values.
+
+However, there is a small complication. To guard against messages with variable numbers of trailing zeroes having the same tag, Poly1305 adds an `\x01` byte to the end of each message chunk. Further, although the algorithm works in a $$2^{130}-5$$ field, the final output is 16-bytes long. Therefore, the highest three bits get truncated in the tag, as the algorithm uses little-endian integers <==> bytes conversions. Some information gets lost, but it's no big deal to just bruteforce these high bits for each chunk.
+
+Overall this looked like a job for [Sage](https://www.sagemath.org/), and our resident Sage artisan [v01d](https://voidma.in/) whipped up a solution script. Wikipedia has an article about [solving systems of polynomial equations](https://en.wikipedia.org/wiki/System_of_polynomial_equations#What_is_solving?): we are constructing the ideal of the system and getting the solutions with an algebraic variety of zero, which Sage easily calculates for us. 
+
+
+```python
+from chacha20poly1305 import *
+from pwn import *
+
+R.<m0, m1> = PolynomialRing(GF(2**130 - 5))
+
+
+class P1305(Poly1305):
+    """overriding some methods so they work in sage/python2
+       and for testing and illustrative purposes"""
+    @staticmethod
+    def le_bytes_to_num(data):
+        ret = 0
+        for i in range(len(data) - 1, -1, -1):
+            ret <<= 8
+            ret += ord(data[i])
+        return ret
+
+    @staticmethod
+    def num_to_16_le_bytes(num):
+        ret = [0]*16
+        for i, _ in enumerate(ret):
+            ret[i] = int(num) & 0xff
+            num >>= 8
+        return bytearray(ret)
+
+
+def solvend(keytags):
+    def mk_poly(key, tag, tagHi):
+        mac = P1305(key)
+        return R(mac.s) + m0*R(mac.r)**2 + m1*R(mac.r) - R(P1305.le_bytes_to_num(tag)) - R(2**128)*R(tagHi)
+
+    for t1 in range(4):
+        for t2 in range(4):
+            for t3 in range(4):
+                tagHis = [t1, t2, t3]
+                polys = [mk_poly(keytags[i][0], keytags[i][1], tagHis[i])
+                         for i in range(len(tagHis))]
+                I = R.ideal(polys)
+                vrt = I.variety()
+                if len(vrt) != 0:
+                    print(vrt)
+                    return vrt
+
+
+def rsoln():
+    with remote('127.0.0.1', 2833) as t:
+        keytags = [map(unhex, t.recvline().split(" ")[:2]) for _ in range(32)]
+        challengeKey = unhex(t.recvline().split(" ")[0])
+        vrt = solvend(keytags)
+        msg = P1305.num_to_16_le_bytes(vrt[0][m0]) + P1305.num_to_16_le_bytes(vrt[0][m1])
+        msg = bytes(msg)
+        tag = bytes(P1305(challengeKey).create_tag(msg))
+        t.sendline(enhex(tag))
+        t.interactive()
+
+
+rsoln()
+```
+
+Here's a tip if you are getting the following error when trying to use Pwntools and Sage in the same script:
+
+```
+_curses.error: must call (at least) setupterm() first 
+```
+
+Just export the environment variable `PWNLIB_NOTERM=true`, this will ensure that the two libraries don't fight over the display on your terminal.
+
+Overall this was a great challenge as the vulnerability was subtle, believable, and fatal. Also it got us to look into the nuts and bolts of an important algorithm in modern crytography which really was more straightforward and fun than we expected.
+
