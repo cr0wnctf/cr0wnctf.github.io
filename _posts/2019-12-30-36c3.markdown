@@ -90,9 +90,9 @@ def solvend(keytags):
         mac = P1305(key)
         return R(mac.s) + m0*R(mac.r)**2 + m1*R(mac.r) - R(P1305.le_bytes_to_num(tag)) - R(2**128)*R(tagHi)
 
-    for t1 in range(4):
-        for t2 in range(4):
-            for t3 in range(4):
+    for t1 in range(0, 5):
+        for t2 in range(0, 5):
+            for t3 in range(0, 5):
                 tagHis = [t1, t2, t3]
                 polys = [mk_poly(keytags[i][0], keytags[i][1], tagHis[i])
                          for i in range(len(tagHis))]
