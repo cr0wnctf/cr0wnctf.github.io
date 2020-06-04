@@ -257,7 +257,7 @@ function verify($data, $hmac) {
 
 This is a [HMAC check](https://en.wikipedia.org/wiki/HMAC), without knowing
 `$secret` we can't forge a malicious `Note` object with `isadmin` set to true.
-We can see the secret is generated using one of our login inputs:
+We can see the secret is derived from one of our login inputs:
 
 ```php
 function gen_secret($seed) {
@@ -287,14 +287,15 @@ The secret is generated at **[4]** from the `nickname` we give in the inital
 login. It's salted (and peppered) before being hashed using md5. Without the
 `SALT` and `PEPPER` values, we can't work out the secret to forge a `Note`.
 
-One other odd thing, it seems the challenge is hosted on `IIS/8.0` - this means
-we're attacking a Windows OS. This is weird for a server which are almost
-exclusively Linux based using Nginx or Apache. I'm sure it's not relevant...
+One other odd thing, it seems the challenge is hosted on `IIS/8.0` --- this means
+we're attacking a Windows OS. This is somewhat weird, web servers are almost
+exclusively Linux based and use Nginx or Apache as their server application of
+choice. I'm sure it won't be relevant...
 
 ## 0x01 Windows Defender? More like Windows Defendon't
 
-We can't brutforce `SALT` and `PEPPER` (I know, I tried for 3hrs), so we need to
-find a way to leak the secret itself or some crypto dark magic to make a
+We can't bruteforce `SALT` and `PEPPER` (been there, done that), so we need to
+find a way to leak the secret itself or use some crypto dark magic to produce a
 matching HMAC for a forged `Note`. The key was using a presentation from the
 same team who ran the CTF, TokyoWesterns and their new [exploit
 technique](https://westerns.tokyo/wctf2019-gtf/wctf2019-gtf-slides.pdf).
@@ -417,6 +418,9 @@ $ docker exec -it my-apache-php-app cat /tmp/sess_0bb85a780cb24c778ac77a16fc4c86
 realname|s:196:"pzvpUGnz<html><script>f=function(n){eval('X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H'+{8:'*'}[Math.min(8,n)])};f(document.body.innerHTML[0].charCodeAt(0));</script><body>";nickname|s:19:"HACKX</body><title>";secret|s:32:"e81958d8cc55411d0c2576c15aae23d2";
 ```
 
-Since this looks dodgy, Defender executes this Javascript, we can then use our
+Since this looks dodgy, Defender executes this Javascript inside itself, we can then use our
 ability to access `document.body.innerHTML` as an oracle and leak byte by byte
-characters in `<body>`!
+characters between the `<body>` tags! That's pretty cool, leaking a file from
+disk using an antivirus. However we aren't done just yet, leaking stuff between
+body is completely useless :(, since the only things between the two `<body>`
+tags is data we've sent and the `nickname` string. So close!
