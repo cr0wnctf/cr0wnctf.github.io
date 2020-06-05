@@ -5,10 +5,11 @@ categories: [writeup]
 tags: [writeups, misc]
 ---
 
-**[TLDR](#tldr)**
-
 For this challenge we had to reverse a script written in an odd esolang based entirely on emojis:
-(sds)[/static/2020/hsctf/Emojis.txt](script.txt)
+
+**[emojis.txt](/static/2020/hsctf/Emojis.txt)**
+
+**[TLDR](#tldr)**
 
 ### Step 1: What Do the Emojis Mean Mason?
 
@@ -98,13 +99,13 @@ IFEQ: if LHS == RHS then skip next line else NOP
 
 That makes things a bit clearer. There are 3 phases:
 
-1. Input Flag (12chars)
+1. Input Flag (13chars)
 2. Mess around the flag bytes
-3. Output the flag (12chars)
+3. Output the flag (13chars) **(Given output: xB^r_En}INc4v)**
 
-At this point in a regular rev challenge I would reach for angr and let it do it's thing, sadly, that's not possible here... Or is it? My solution: **write a shitty angr clone!**. We can use z3 to symbolically pipe input into the challenge, and track the operations done on them before being output. This is a bit messy to do since we need to branch 128(7 ifs) times and track each state and associated constraints. Then at the end we constrain our symbolic outputs to the given outputs and we can then solve for the flag input! Just like Angr!
+At this point in a regular rev challenge I would reach for angr and let it do it's thing, sadly, that's not possible here... Or is it? My solution: **write a shitty angr clone!**. We can use z3 to symbolically pipe input into the challenge, and track the operations done on them before being output. Then at the end we constrain our symbolic outputs to the given outputs and we can then solve for the flag input! Just like real Angr!
 
-An example end state showing how flag characters and tracked and the constraints to reach this state:
+An example end state showing how input flag characters are tracked and their constraints:
 
 ```
 out[0]  = flag_in[0] + flag_in[11] - (flag_in[2] - 8 + 4)
@@ -113,12 +114,13 @@ out[2]  = flag_in[2] - 8 + 4 + flag_in[2] - 8 + 4
 out[3]  = flag_in[12] + 2
 out[4]  = flag_in[4] + flag_in[9] + flag_in[6] - (flag_in[11] + 1)
 out[5]  = flag_in[5] - flag_in[6]
-out[6]  = flag_in[6]
+out[6]  = flag_in[6] + flag_in[8]
 out[7]  = flag_in[7] + flag_in[8] - (flag_in[11] + 1)
 out[8]  = flag_in[8] + 8
 out[9]  = flag_in[9] + flag_in[6] - (flag_in[1] - flag_in[4] + flag_in[7] - flag_in[12])
 out[10] = flag_in[10] - 8
 out[11] = flag_in[11] + 1
+out[12] = flag_in[3]
 ```
 
 Constraints, notice how they match the `IFEQ` jumps in the disassembly above:
@@ -126,11 +128,11 @@ Constraints, notice how they match the `IFEQ` jumps in the disassembly above:
 ```
 flag_in[1] == flag_in[12]
 flag_in[1] == flag_in[5]
-flag_in[4] == flag_in[9] + flag_in[6]
-flag_in[12] + 2 != flag_in[5]
 flag_in[4] != flag_in[9] + flag_in[6]
-flag_in[10] - 8 == 4
-flag_in[10] - 8 != 0)
+flag_in[4] != flag_in[9] + flag_in[6]
+flag_in[10] - 8 != 4
+flag_in[10] - 8 != 0
+flag_in[12] + 2 != flag_in[5]
 ```
 
 Excitedly running this new tool we get:
@@ -141,18 +143,21 @@ Excitedly running this new tool we get:
 [-] Expected output isn't possible :(
 ```
 
-_HUH?!_ **WHAT??** z3 thinks that there is no possible input that could produce this output. Well that can't be right?
+_HUH?!_ **WHAT??** z3 thinks there isn't a possible input that could produce this output. Well that can't be right?
 
-### Haha. Enjoy the broken challenge
+### Broken Challenge
 
-Convinced we'd made a mistake in the fancy solve script we went back to basics and worked backwards from the known state to the previous state, eventually finding the flag by luck and force: **FLAG**: `flag{tr3v0r_pAck3r}`
+Convinced we'd made a mistake in the fancy solve script we went back to basics and worked backwards from the known state to the previous state, eventually finding the flag by luck, force, and guessing:
 
-I wonder why we couldn't solve this using z3? Well if we plug this into the black box script from the esolang's wiki **WE GET A DIFFERENT OUTPUT FROM THE CHALLENGE OUTPUT**. THEY GAVE US THE WRONG OUTPUT! THE ONLY WAY TO SOLVE THIS IS TO PARTLY GUESS THE FLAG.
+
+**FLAG**: `flag{tr3v0r_pAck3r}`
+
+I wonder why we couldn't solve this using z3? Well if we plug this real flag into the black box script from the esolang's wiki **WE GET A DIFFERENT OUTPUT**
 
 **Actual flag output** = `x@^t¾\x13\xa0}I\x82c4v` ascii:(120, 64, 94, 116, 190, 19, 160, 125, 73, 130, 99, 52, 118)  
-_THEIR_ flag output = `xB^r_En}INc4v` ascii:(120, 66, 94, 114, 95, 69, 110, 125, 73, 78, 99, 52, 118)
+_GIVEN_ flag output = `xB^r_En}INc4v` ascii:(120, 66, 94, 114, 95, 69, 110, 125, 73, 78, 99, 52, 118)
 
-Well that break trying to solve this via z3. Using the real output our solve script storms it:
+That explains why z3 thought our output was unsatisfiable, _it's because it was._ Re-running with the proper output z3 happily gives us a satisfied model:
 
 ```
 ➜  emoji git:(master) ✗ python soln2.py ./emoji.txt sim
@@ -174,6 +179,15 @@ flag_in[12] = r
 flag_in[13] = !
 ```
 
+We could have been done so much sooner. 1/10.
+
 ### TLDR
 
 Broken challenge, the given output is wrong. Use manual spreadsheet techniques to get partway to the flag then guess until the scoreboard says you're right. **sigh**.
+
+### [Solution script](/static/2020/hsctf/soln.py)
+
+**Features:**  
+_Emoji-gramming Disasembler_  
+_Symbolic Solver_  
+**Bonus**: Includes a Emoji-gramming interpreter! Pray tell it may be useful in future CTFs.
