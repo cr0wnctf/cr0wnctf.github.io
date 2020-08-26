@@ -51,7 +51,7 @@ My first instinct was to check `/etc/shadow` and the boot files, the former was 
 I also checked `initramfs` to see if there are any files I might have missed, it contains `ssdt.aml`, we'll come back to this later.
 
 ## Authentication mechanism
-A feature that authenticated users in Linux was PAM.
+Users are authenticated by the PAM service in Linux
 So I checked out the modules in `/etc/pam.d/system-auth`, and `pam_chck.so` was mentioned.
 
 `pam_chck.so` looks for the __root__ user, then returns 0 (success) if `check_device() == 1`.
