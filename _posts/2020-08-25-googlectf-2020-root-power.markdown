@@ -13,17 +13,17 @@ We were provided with a virtual machine disk image and had to recover the ___roo
 ## Outline
 
 1. First look at disk image.
-2. Access the filesystem.
+2. Access the file system.
 3. Discover the authentication mechanism.
 4. Reverse engineering a kernel module.
 5. Discovering what `initramfs` contains and does.
 6. Reverse engineering an AML file.
 7. Win.
 
-## Tl;dr
+## TL;DR
 
 The given image has a pluggable authentication module that checks if a char device `/dev/chck` reads __1__ when __root__ login is attempted.
-The kernel module responsible for said device reads from ACPI, logic of which is within a ACPI Machine Language (AML) file.
+The kernel module responsible for said device reads from ACPI, logic of which is within an ACPI Machine Language (AML) file.
 Decompiling it shows that it is a PS/2 keyboard device, and the make/break codes form the flag.
 
 ## First look
@@ -35,20 +35,20 @@ GRUB menu reveals that it is Arch Linux, and you are greeted with a login prompt
 ![Grub Menu](/images/google20/root-power/qemu-1.png "Grub Menu")
 ![Login Prompt](/images/google20/root-power/qemu-2.png "Login Prompt")
 
-Binwalk suggests there's a EXT filesystem at offset `0x100000`.
+Binwalk suggests there's an EXT file system at offset `0x100000`.
 
 ![Binwalk](/images/google20/root-power/binwalk.png "Binwalk")
 
-## The filesystem
+## The file system
 
-The filesystem can be mounted with:
+The file system can be mounted with:
 
 ```bash
 mkdir -p mnt && sudo mount -o loop,offset=1048576 disk.img mnt
 ```
 
 My first instinct was to check `/etc/shadow` and the boot files, the former was a rabbit hole.
-I also checked `initramfs` to see if there are any files I might've missed, it contains `ssdt.aml`, we'll come back to this later.
+I also checked `initramfs` to see if there are any files I might have missed, it contains `ssdt.aml`, we'll come back to this later.
 
 ## Authentication mechanism
 A feature that authenticated users in Linux was PAM.
@@ -153,8 +153,8 @@ My guess was that this was handled early in the boot process --- `initramfs`.
 `initramfs` contains `ssdt.aml` which can be decompiled with `iasl`, producing ssdt.dsl.
 The following helped me make sense of what is happening:
 
-1. https://uefi.org/specifications
-2. https://wiki.osdev.org/AML
+1. [https://uefi.org/specifications](https://uefi.org/specifications)
+2. [https://wiki.osdev.org/AML](https://wiki.osdev.org/AML)
 
 Here's roughly what it does:
 
@@ -167,7 +167,7 @@ What kind of device is this? Googling ___acpi 0x60 0x64___ yields [this page](ht
 So I made the assumption that `KBDA` contained __PS/2 scan codes__.
 
 That assumption was confirmed with [this table](http://www.vetra.com/scancodes.html).
-Each byte represents a make/break code, indicating a keydown/keyup event.
+Each byte represents a make/break code, indicating a key-down/key-up event.
 
 The decode script is trivial and is left as an exercise for the reader.
 _Lol kidding_, I did it by hand.
