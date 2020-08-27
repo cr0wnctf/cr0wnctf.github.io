@@ -112,7 +112,7 @@ What exactly provides this device?
 
 ## Chck kernel module
 
-Devices in `/dev/` are usually added through kernel modules, so I looked for `.ko` files in the image.
+Additional devices in `/dev/` are usually added through kernel modules, so I looked for `.ko` files in the image.
 Immediately, `chck.ko` jumped out so it was given the decompiler treatment, indeed it handles `/dev/chck`.
 
 ```c
